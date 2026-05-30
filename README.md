@@ -2,20 +2,20 @@
 
 # API Requests
 
-Base URL: `http://localhost:8000/api`
+Base URL: `https://palegreen-eagle-487743.hostingersite.com/api`
 
 > These examples are derived from `routes/api.php` and the request validation rules in the application.
 
 ## Test Endpoint
 
 ```bash
-curl -X GET http://localhost:8000/api/test
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/test
 ```
 
 ## Register User
 
 ```bash
-curl -X POST http://localhost:8000/api/register \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -30,7 +30,7 @@ curl -X POST http://localhost:8000/api/register \
 ## Login User
 
 ```bash
-curl -X POST http://localhost:8000/api/login \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
@@ -41,28 +41,28 @@ curl -X POST http://localhost:8000/api/login \
 ## Get Authenticated User
 
 ```bash
-curl -X GET http://localhost:8000/api/user \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/user \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ## Logout User
 
 ```bash
-curl -X POST http://localhost:8000/api/logout \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/logout \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ## Setup Two-Factor Authentication
 
 ```bash
-curl -X POST http://localhost:8000/api/2fa/setup \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/2fa/setup \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ## Verify Two-Factor Authentication
 
 ```bash
-curl -X POST http://localhost:8000/api/2fa/verify \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/2fa/verify \
   -H "Authorization: Bearer 1|abc123def456..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -73,7 +73,7 @@ curl -X POST http://localhost:8000/api/2fa/verify \
 ## Disable Two-Factor Authentication
 
 ```bash
-curl -X POST http://localhost:8000/api/2fa/disable \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/2fa/disable \
   -H "Authorization: Bearer 1|abc123def456..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -84,14 +84,14 @@ curl -X POST http://localhost:8000/api/2fa/disable \
 ## Get Device History
 
 ```bash
-curl -X GET http://localhost:8000/api/devices \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/devices \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ## Sync Items
 
 ```bash
-curl -X GET "http://localhost:8000/api/items/sync?last_sync=2026-04-23T12:00:00Z" \
+curl -X GET "https://palegreen-eagle-487743.hostingersite.com/api/items/sync?last_sync=2026-04-23T12:00:00Z" \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
@@ -100,14 +100,14 @@ curl -X GET "http://localhost:8000/api/items/sync?last_sync=2026-04-23T12:00:00Z
 ### List Vaults
 
 ```bash
-curl -X GET http://localhost:8000/api/vaults \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ### Create Vault
 
 ```bash
-curl -X POST http://localhost:8000/api/vaults \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults \
   -H "Authorization: Bearer 1|abc123def456..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -118,14 +118,14 @@ curl -X POST http://localhost:8000/api/vaults \
 ### Get Vault
 
 ```bash
-curl -X GET http://localhost:8000/api/vaults/1 \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1 \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ### Update Vault
 
 ```bash
-curl -X PUT http://localhost:8000/api/vaults/1 \
+curl -X PUT https://palegreen-eagle-487743.hostingersite.com/api/vaults/1 \
   -H "Authorization: Bearer 1|abc123def456..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -136,7 +136,7 @@ curl -X PUT http://localhost:8000/api/vaults/1 \
 ### Delete Vault
 
 ```bash
-curl -X DELETE http://localhost:8000/api/vaults/1 \
+curl -X DELETE https://palegreen-eagle-487743.hostingersite.com/api/vaults/1 \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
@@ -145,14 +145,14 @@ curl -X DELETE http://localhost:8000/api/vaults/1 \
 ### List Items in a Vault
 
 ```bash
-curl -X GET http://localhost:8000/api/vaults/1/items \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ### Create Item
 
 ```bash
-curl -X POST http://localhost:8000/api/vaults/1/items \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items \
   -H "Authorization: Bearer 1|abc123def456..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -166,14 +166,14 @@ curl -X POST http://localhost:8000/api/vaults/1/items \
 ### Get Item
 
 ```bash
-curl -X GET http://localhost:8000/api/vaults/1/items/3 \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items/3 \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ### Update Item
 
 ```bash
-curl -X PUT http://localhost:8000/api/vaults/1/items/3 \
+curl -X PUT https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items/3 \
   -H "Authorization: Bearer 1|abc123def456..." \
   -H "Content-Type: application/json" \
   -d '{
@@ -187,7 +187,7 @@ curl -X PUT http://localhost:8000/api/vaults/1/items/3 \
 ### Delete Item
 
 ```bash
-curl -X DELETE http://localhost:8000/api/vaults/1/items/3 \
+curl -X DELETE https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items/3 \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
@@ -196,7 +196,7 @@ curl -X DELETE http://localhost:8000/api/vaults/1/items/3 \
 ### Upload File
 
 ```bash
-curl -X POST http://localhost:8000/api/vaults/1/files \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files \
   -H "Authorization: Bearer 1|abc123def456..." \
   -F "file=@/path/to/document.pdf" \
   -F "file_name=document.pdf" \
@@ -207,21 +207,21 @@ curl -X POST http://localhost:8000/api/vaults/1/files \
 ### List Files in a Vault
 
 ```bash
-curl -X GET http://localhost:8000/api/vaults/1/files \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ### Get File Metadata
 
 ```bash
-curl -X GET http://localhost:8000/api/vaults/1/files/5 \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files/5 \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ### Update File
 
 ```bash
-curl -X POST http://localhost:8000/api/vaults/1/files/5 \
+curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files/5 \
   -H "Authorization: Bearer 1|abc123def456..." \
   -F "_method=PUT" \
   -F "file=@/path/to/new-document.pdf" \
@@ -233,22 +233,23 @@ curl -X POST http://localhost:8000/api/vaults/1/files/5 \
 ### Delete File
 
 ```bash
-curl -X DELETE http://localhost:8000/api/vaults/1/files/5 \
+curl -X DELETE https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files/5 \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ### Get File Download URL
 
 ```bash
-curl -X GET http://localhost:8000/api/vaults/1/files/5/download-url \
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files/5/download-url \
   -H "Authorization: Bearer 1|abc123def456..."
 ```
 
 ## Download File by Token
 
 ```bash
-curl -X GET "http://localhost:8000/api/files/download/abc123def456..." \
+curl -X GET "https://palegreen-eagle-487743.hostingersite.com/api/files/download/abc123def456..." \
   --output downloaded-file.enc
 ```
 
 
+<!--  -->
