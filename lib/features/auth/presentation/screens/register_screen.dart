@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../data/models/register_request_model.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../widgets/vault_card.dart';
 import '../widgets/vault_login_button.dart';
 import '../widgets/vault_text_field.dart';
@@ -24,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   final _masterPasswordController = TextEditingController();
   final _confirmMasterPasswordController = TextEditingController();
+  final _repository = AuthRepository();
 
   late final TapGestureRecognizer _securityProtocolsRecognizer;
   late final TapGestureRecognizer _termsRecognizer;
@@ -36,6 +41,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _agreedToTerms = false;
   bool _isLoading = false;
   PasswordStrength _passwordStrength = PasswordStrength.weak;
+  String? _emailError;
+  String? _passwordError;
+  String? _confirmPasswordError;
+  String? _masterPasswordError;
 
   @override
   void initState() {
@@ -86,6 +95,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+      _confirmPasswordError = null;
+      _masterPasswordError = null;
+    });
+
     final fields = [
       _fullNameController.text.trim(),
       _emailController.text.trim(),
@@ -99,37 +115,105 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _showError('All fields are required.');
       return;
     }
+
+    var hasInlineError = false;
+    final email = _emailController.text.trim();
+
+    if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(email)) {
+      _emailError = 'Enter a valid email address';
+      hasInlineError = true;
+    }
+    if (_passwordController.text.length < 12) {
+      _passwordError = 'Password must be at least 12 characters.';
+      hasInlineError = true;
+    }
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showError('Password and confirmation do not match.');
-      return;
+      _confirmPasswordError = 'Passwords do not match.';
+      hasInlineError = true;
     }
     if (_masterPasswordController.text !=
         _confirmMasterPasswordController.text) {
-      _showError('Master password and confirmation do not match.');
+      _masterPasswordError = 'Master passwords do not match.';
+      hasInlineError = true;
+    }
+
+    if (hasInlineError) {
+      setState(() {});
       return;
     }
+
     if (!_agreedToTerms) {
       _showError('Please agree to the Security Protocols and Terms.');
       return;
     }
-    if (_passwordController.text.length < 12) {
-      _showError('Password must be at least 12 characters.');
-      return;
-    }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
+
+    try {
+      final request = RegisterRequestModel(
+        name: _fullNameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        passwordConfirmation: _confirmPasswordController.text,
+        masterPassword: _masterPasswordController.text,
+        masterPasswordConfirmation: _confirmMasterPasswordController.text,
+      );
+
+      final response = await _repository.register(request);
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) {
+            return DashboardScreen(
+              userName: response.user.name,
+              token: response.token,
+            );
+          },
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
+        (route) => false,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showErrorSnackBar(e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _showError(String message) {
+    _showErrorSnackBar(message);
+  }
+
+  void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(message),
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white, size: 16.sp),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  message,
+                  style: TextStyle(fontSize: 13.sp, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
           backgroundColor: const Color(0xFFCC3333),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          duration: const Duration(seconds: 4),
         ),
       );
   }
@@ -220,6 +304,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         prefixIcon: Icons.alternate_email,
                         controller: _emailController,
                       ),
+                      if (_emailError != null) ...[
+                        SizedBox(height: 6.h),
+                        _InlineFieldError(message: _emailError!),
+                      ],
                       SizedBox(height: 14.h),
                       VaultTextField(
                         label: 'PASSWORD',
@@ -234,6 +322,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                         ),
                       ),
+                      if (_passwordError != null) ...[
+                        SizedBox(height: 6.h),
+                        _InlineFieldError(message: _passwordError!),
+                      ],
                       SizedBox(height: 8.h),
                       _PasswordStrengthIndicator(strength: _passwordStrength),
                       SizedBox(height: 14.h),
@@ -253,6 +345,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                         ),
                       ),
+                      if (_confirmPasswordError != null) ...[
+                        SizedBox(height: 6.h),
+                        _InlineFieldError(message: _confirmPasswordError!),
+                      ],
                       SizedBox(height: 14.h),
                       VaultTextField(
                         label: 'MASTER PASSWORD',
@@ -295,6 +391,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                         ),
                       ),
+                      if (_masterPasswordError != null) ...[
+                        SizedBox(height: 6.h),
+                        _InlineFieldError(message: _masterPasswordError!),
+                      ],
                       SizedBox(height: 16.h),
                       _TermsRow(
                         agreedToTerms: _agreedToTerms,
@@ -365,6 +465,23 @@ class _VisibilityButton extends StatelessWidget {
         isVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
         color: AppColors.iconColor,
         size: 20.sp,
+      ),
+    );
+  }
+}
+
+class _InlineFieldError extends StatelessWidget {
+  const _InlineFieldError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: 4.w),
+      child: Text(
+        message,
+        style: TextStyle(fontSize: 11.sp, color: const Color(0xFFCC3333)),
       ),
     );
   }

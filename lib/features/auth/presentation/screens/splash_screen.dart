@@ -3,7 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -37,17 +39,39 @@ class _SplashScreenState extends State<SplashScreen> {
 
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return const LoginScreen();
-        },
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 600),
-      ),
-    );
+
+    final hasSession = await TokenStorage.hasSession();
+    if (!mounted) return;
+
+    if (hasSession) {
+      final name = await TokenStorage.getUserName() ?? '';
+      if (!mounted) return;
+
+      final token = await TokenStorage.getToken() ?? '';
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              DashboardScreen(userName: name, token: token),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
+      );
+    }
   }
 
   @override

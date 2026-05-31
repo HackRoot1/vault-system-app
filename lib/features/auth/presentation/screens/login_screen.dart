@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../data/models/login_request_model.dart';
+import '../../data/repositories/auth_repository.dart';
 import 'register_screen.dart';
 import '../widgets/vault_card.dart';
 import '../widgets/vault_login_button.dart';
@@ -18,12 +23,16 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: AppStrings.emailHint);
-  final _passwordController = TextEditingController(text: 'securevault');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _repository = AuthRepository();
   late final TapGestureRecognizer _registerRecognizer;
 
+  bool _isLoading = false;
   bool _rememberMe = false;
   bool _obscurePassword = true;
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void initState() {
@@ -47,7 +56,93 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _obscurePassword = !_obscurePassword);
   }
 
-  void _handleLogin() {}
+  Future<void> _handleLogin() async {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+
+    var hasError = false;
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      setState(() => _emailError = 'Email is required');
+      hasError = true;
+    } else if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(email)) {
+      setState(() => _emailError = 'Enter a valid email address');
+      hasError = true;
+    }
+
+    if (_passwordController.text.isEmpty) {
+      setState(() => _passwordError = 'Password is required');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final request = LoginRequestModel(
+        email: email,
+        password: _passwordController.text,
+      );
+
+      final response = await _repository.login(request);
+
+      await TokenStorage.saveSession(
+        token: response.token,
+        name: response.user.name,
+        email: response.user.email,
+      );
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              DashboardScreen(
+                userName: response.user.name,
+                token: response.token,
+              ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
+        (route) => false,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showErrorSnackBar(e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.white, size: 16.sp),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(fontSize: 13.sp, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFCC3333),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16.w),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
 
   void _handleForgotPassword() {}
 
@@ -107,6 +202,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               prefixIcon: Icons.alternate_email,
                               controller: _emailController,
                             ),
+                            if (_emailError != null) ...[
+                              SizedBox(height: 6.h),
+                              _InlineFieldError(message: _emailError!),
+                            ],
                             SizedBox(height: 16.h),
                             VaultTextField(
                               label: AppStrings.password,
@@ -125,6 +224,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                             ),
+                            if (_passwordError != null) ...[
+                              SizedBox(height: 6.h),
+                              _InlineFieldError(message: _passwordError!),
+                            ],
                             SizedBox(height: 20.h),
                             _RememberForgotRow(
                               rememberMe: _rememberMe,
@@ -135,6 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             VaultLoginButton(
                               label: AppStrings.login,
                               onPressed: _handleLogin,
+                              isLoading: _isLoading,
                             ),
                             SizedBox(height: 20.h),
                             RichText(
@@ -189,6 +293,26 @@ class _LockHeader extends StatelessWidget {
         Icons.lock_outline,
         size: 56.sp,
         color: AppColors.primaryText,
+      ),
+    );
+  }
+}
+
+class _InlineFieldError extends StatelessWidget {
+  const _InlineFieldError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: EdgeInsets.only(left: 4.w),
+        child: Text(
+          message,
+          style: TextStyle(fontSize: 11.sp, color: const Color(0xFFCC3333)),
+        ),
       ),
     );
   }

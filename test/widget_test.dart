@@ -1,7 +1,9 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vault_system/core/constants/app_strings.dart';
+import 'package:vault_system/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:vault_system/main.dart';
 
 void main() {
@@ -62,5 +64,38 @@ void main() {
     expect(find.text('FULL NAME'), findsOneWidget);
     expect(find.text('MASTER PASSWORD'), findsOneWidget);
     expect(find.text('ENCRYPTION LEVEL'), findsOneWidget);
+  });
+
+  testWidgets('renders the dashboard screen with static data', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      ScreenUtilInit(
+        designSize: const Size(390, 844),
+        builder: (context, child) {
+          return MaterialApp(home: child);
+        },
+        child: const DashboardScreen(
+          userName: 'Test Operator',
+          token: 'test-token',
+        ),
+      ),
+    );
+
+    expect(find.text('Secure Vault'), findsOneWidget);
+    expect(find.text('TOTAL VAULTS'), findsOneWidget);
+    expect(find.text('TOTAL ITEMS'), findsOneWidget);
+    expect(find.text('TOTAL FILES'), findsOneWidget);
+    expect(find.text('QUICK ACTIONS'), findsOneWidget);
+    expect(find.text('Add Vault'), findsOneWidget);
+    expect(find.text('Recent Vaults'), findsOneWidget);
+    expect(find.text('Personal'), findsOneWidget);
+    expect(find.text('Recently Added Items'), findsOneWidget);
+    expect(find.text('GitHub Credentials'), findsOneWidget);
   });
 }
