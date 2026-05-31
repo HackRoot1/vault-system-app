@@ -62,8 +62,8 @@ class VaultRepository {
       await _itemService.deleteItem(vaultId, itemId, token);
     } on ApiException {
       rethrow;
-    } catch (_) {
-      throw const ApiException(
+    } catch (e) {
+      throw ApiException(
         message: 'Failed to delete item. Please try again.',
         statusCode: 0,
       );
@@ -80,8 +80,8 @@ class VaultRepository {
       return await _itemService.updateItem(vaultId, itemId, request, token);
     } on ApiException {
       rethrow;
-    } catch (_) {
-      throw const ApiException(
+    } catch (e) {
+      throw ApiException(
         message: 'Failed to update item. Please try again.',
         statusCode: 0,
       );

@@ -107,20 +107,28 @@ class ApiClient {
         )
         .timeout(const Duration(seconds: 30));
 
-    Map<String, dynamic> decoded = const {};
-    if (response.body.isNotEmpty) {
-      decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 204) {
+      return {'success': true, 'message': 'Deleted', 'data': null};
     }
 
-    if (response.statusCode == 200 || response.statusCode == 204) {
-      return decoded;
-    } else {
-      final message = decoded['message'] ?? 'Something went wrong';
+    if (response.body.isEmpty) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'success': true, 'message': 'Deleted', 'data': null};
+      }
       throw ApiException(
-        message: message.toString(),
+        message: 'Server returned empty response',
         statusCode: response.statusCode,
       );
     }
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return decoded;
+    }
+
+    final message = decoded['message'] ?? 'Something went wrong';
+    throw ApiException(message: message, statusCode: response.statusCode);
   }
 }
 

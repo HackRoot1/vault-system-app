@@ -63,6 +63,6 @@ class VaultItemService {
       request.toJson(),
       token: token,
     );
-    return VaultItemModel.fromJson(json['data'] as Map<String, dynamic>);
+    return VaultItemModel.fromJson(json['data']);
   }
 }
