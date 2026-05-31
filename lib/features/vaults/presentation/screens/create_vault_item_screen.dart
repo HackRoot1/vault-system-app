@@ -10,6 +10,7 @@ import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../data/models/create_vault_item_request_model.dart';
+import '../../data/models/vault_item_model.dart';
 import '../../data/models/vault_list_model.dart';
 import '../../data/repositories/vault_repository.dart';
 import 'vault_detail_screen.dart';
@@ -50,6 +51,7 @@ class CreateVaultItemScreen extends StatefulWidget {
     required this.cryptoIterations,
     required this.vaults,
     this.preselectedVault,
+    this.itemToEdit,
     super.key,
   });
 
@@ -59,6 +61,7 @@ class CreateVaultItemScreen extends StatefulWidget {
   final int cryptoIterations;
   final List<VaultListModel> vaults;
   final VaultListModel? preselectedVault;
+  final VaultItemModel? itemToEdit;
 
   @override
   State<CreateVaultItemScreen> createState() => _CreateVaultItemScreenState();
@@ -90,13 +93,83 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
   String? _titleError;
   String? _vaultError;
 
+  bool get _isEditMode => widget.itemToEdit != null;
+
+  String get _screenTitle => _isEditMode ? 'Edit Item' : 'Add Item';
+
+  String get _buttonLabel =>
+      _isEditMode ? 'Encrypt & Update' : 'Encrypt & Save';
+
   @override
   void initState() {
     super.initState();
     _selectedVault = widget.preselectedVault;
+    if (_isEditMode) {
+      if (_selectedVault == null) {
+        for (final vault in widget.vaults) {
+          if (vault.id == widget.itemToEdit!.vaultId) {
+            _selectedVault = vault;
+            break;
+          }
+        }
+      }
+      _selectedType = _typeFromString(widget.itemToEdit!.type);
+      _prefillEditFields();
+    }
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _validateCryptoParams(),
     );
+  }
+
+  VaultItemType _typeFromString(String type) {
+    switch (type) {
+      case 'secure_note':
+        return VaultItemType.secureNote;
+      case 'credit_card':
+        return VaultItemType.creditCard;
+      default:
+        return VaultItemType.login;
+    }
+  }
+
+  Future<void> _prefillEditFields() async {
+    try {
+      final mp = TokenStorage.getMasterPassword();
+      if (mp == null || mp.isEmpty) return;
+
+      final key = await VaultCrypto.deriveKey(
+        masterPassword: mp,
+        saltHex: widget.cryptoSalt,
+        iterations: widget.cryptoIterations,
+      );
+
+      final payload = await widget.itemToEdit!.decryptPayload(key);
+      if (payload == null || !mounted) return;
+
+      setState(() {
+        switch (_selectedType) {
+          case VaultItemType.login:
+            _titleController.text = payload['title'] as String? ?? '';
+            _usernameController.text = payload['username'] as String? ?? '';
+            _secretController.text = payload['secret'] as String? ?? '';
+            _notesController.text = payload['notes'] as String? ?? '';
+            break;
+          case VaultItemType.secureNote:
+            _notesTitleController.text = payload['title'] as String? ?? '';
+            _notesContentController.text = payload['content'] as String? ?? '';
+            break;
+          case VaultItemType.creditCard:
+            _cardNameController.text = payload['card_name'] as String? ?? '';
+            _cardholderController.text = payload['cardholder'] as String? ?? '';
+            _cardNumberController.text = payload['number'] as String? ?? '';
+            _expiryController.text = payload['expiry'] as String? ?? '';
+            _cvvController.text = payload['cvv'] as String? ?? '';
+            break;
+        }
+      });
+    } catch (_) {
+      // Silent fail; user can fill manually.
+    }
   }
 
   Future<void> _validateCryptoParams() async {
@@ -254,6 +327,35 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
   }
 
   Widget _buildVaultDropdown() {
+    if (_isEditMode) {
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D1B2A),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: const Color(0x0FFFFFFF)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _selectedVault?.name ?? 'Unknown vault',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: const Color(0xFF8899AA),
+                ),
+              ),
+            ),
+            Icon(
+              Icons.lock_outline,
+              size: 16.sp,
+              color: const Color(0xFF445566),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
       decoration: BoxDecoration(
@@ -298,6 +400,41 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
   }
 
   Widget _buildTypeDropdown() {
+    if (_isEditMode) {
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D1B2A),
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: const Color(0x0FFFFFFF)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _selectedType.icon,
+              size: 16.sp,
+              color: const Color(0xFF8899AA),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Text(
+                _selectedType.label,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: const Color(0xFF8899AA),
+                ),
+              ),
+            ),
+            Icon(
+              Icons.lock_outline,
+              size: 16.sp,
+              color: const Color(0xFF445566),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
       decoration: BoxDecoration(
@@ -591,7 +728,16 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
         tag: encrypted.tag,
       );
 
-      await _repository.createItem(_selectedVault!.id, request, widget.token);
+      if (_isEditMode) {
+        await _repository.updateItem(
+          _selectedVault!.id,
+          widget.itemToEdit!.id,
+          request,
+          widget.token,
+        );
+      } else {
+        await _repository.createItem(_selectedVault!.id, request, widget.token);
+      }
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -605,7 +751,9 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
               ),
               SizedBox(width: 8.w),
               Text(
-                'Item encrypted and saved',
+                _isEditMode
+                    ? 'Item encrypted and updated'
+                    : 'Item encrypted and saved',
                 style: TextStyle(fontSize: 13.sp, color: Colors.white),
               ),
             ],
@@ -798,7 +946,7 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      'Add Item',
+                      _screenTitle,
                       style: GoogleFonts.playfairDisplay(
                         fontSize: 22.sp,
                         fontWeight: FontWeight.w700,
@@ -905,7 +1053,7 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
                                     ),
                                     SizedBox(width: 8.w),
                                     Text(
-                                      'Encrypt & Save',
+                                      _buttonLabel,
                                       style: TextStyle(
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.w600,

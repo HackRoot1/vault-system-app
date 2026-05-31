@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vault_bottom_nav.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import '../../data/models/create_vault_request_model.dart';
+import '../../data/models/vault_list_model.dart';
 import '../../data/repositories/vault_repository.dart';
 import 'vault_list_screen.dart';
 
@@ -14,11 +15,13 @@ class CreateVaultScreen extends StatefulWidget {
   const CreateVaultScreen({
     required this.token,
     required this.userName,
+    this.vaultToEdit,
     super.key,
   });
 
   final String token;
   final String userName;
+  final VaultListModel? vaultToEdit;
 
   @override
   State<CreateVaultScreen> createState() => _CreateVaultScreenState();
@@ -31,6 +34,27 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
 
   bool _isLoading = false;
   String? _nameError;
+
+  bool get _isEditMode => widget.vaultToEdit != null;
+
+  String get _screenTitle => _isEditMode ? 'Update Vault' : 'Create Vault';
+
+  String get _cardTitle =>
+      _isEditMode ? 'Edit Security Layer' : 'New Security Layer';
+
+  String get _cardSubtitle => _isEditMode
+      ? 'Update your encrypted container.'
+      : 'Configure your encrypted container.';
+
+  String get _buttonLabel => _isEditMode ? 'Update Vault' : 'Save Vault';
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditMode) {
+      _nameController.text = widget.vaultToEdit!.name;
+    }
+  }
 
   @override
   void dispose() {
@@ -56,7 +80,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
               ),
               Expanded(
                 child: Text(
-                  'Create Vault',
+                  _screenTitle,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 24.sp,
@@ -231,7 +255,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'New Security Layer',
+                      _cardTitle,
                       style: GoogleFonts.playfairDisplay(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.w700,
@@ -240,7 +264,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                     ),
                     SizedBox(height: 4.h),
                     Text(
-                      'Configure your encrypted container.',
+                      _cardSubtitle,
                       style: TextStyle(
                         fontSize: 11.sp,
                         color: AppColors.secondaryText,
@@ -283,22 +307,24 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                 ),
               ),
             ),
-          SizedBox(height: 16.h),
-          Text(
-            'Description',
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: AppColors.secondaryText,
-              fontWeight: FontWeight.w500,
+          if (!_isEditMode) ...[
+            SizedBox(height: 16.h),
+            Text(
+              'Description',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: AppColors.secondaryText,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          SizedBox(height: 8.h),
-          _buildTextField(
-            controller: _descriptionController,
-            hintText: 'Optional notes',
-            maxLines: 5,
-            minLines: 4,
-          ),
+            SizedBox(height: 8.h),
+            _buildTextField(
+              controller: _descriptionController,
+              hintText: 'Optional notes',
+              maxLines: 5,
+              minLines: 4,
+            ),
+          ],
           SizedBox(height: 20.h),
           Row(
             children: [
@@ -367,7 +393,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
                             ),
                           )
                         : Text(
-                            'Save Vault',
+                            _buttonLabel,
                             style: GoogleFonts.playfairDisplay(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w600,
@@ -424,13 +450,20 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final description = _descriptionController.text.trim();
-      final request = CreateVaultRequestModel(
-        name: name,
-        description: description.isEmpty ? null : description,
-      );
-
-      await _repository.createVault(request, widget.token);
+      if (_isEditMode) {
+        await _repository.updateVault(
+          widget.vaultToEdit!.id,
+          name,
+          widget.token,
+        );
+      } else {
+        final description = _descriptionController.text.trim();
+        final request = CreateVaultRequestModel(
+          name: name,
+          description: description.isEmpty ? null : description,
+        );
+        await _repository.createVault(request, widget.token);
+      }
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -444,7 +477,9 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
               ),
               SizedBox(width: 8.w),
               Text(
-                'Vault created successfully',
+                _isEditMode
+                    ? 'Vault updated successfully'
+                    : 'Vault created successfully',
                 style: TextStyle(fontSize: 13.sp, color: Colors.white),
               ),
             ],
@@ -459,7 +494,7 @@ class _CreateVaultScreenState extends State<CreateVaultScreen> {
         ),
       );
 
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 400));
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(

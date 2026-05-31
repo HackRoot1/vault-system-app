@@ -57,6 +57,37 @@ class VaultRepository {
     }
   }
 
+  Future<void> deleteItem(int vaultId, int itemId, String token) async {
+    try {
+      await _itemService.deleteItem(vaultId, itemId, token);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException(
+        message: 'Failed to delete item. Please try again.',
+        statusCode: 0,
+      );
+    }
+  }
+
+  Future<VaultItemModel> updateItem(
+    int vaultId,
+    int itemId,
+    CreateVaultItemRequestModel request,
+    String token,
+  ) async {
+    try {
+      return await _itemService.updateItem(vaultId, itemId, request, token);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException(
+        message: 'Failed to update item. Please try again.',
+        statusCode: 0,
+      );
+    }
+  }
+
   Future<List<VaultItemModel>> getItems(int vaultId, String token) async {
     try {
       return await _itemService.getItems(vaultId, token);
@@ -91,6 +122,36 @@ class VaultRepository {
     } catch (_) {
       throw const ApiException(
         message: 'Failed to load vault. Please try again.',
+        statusCode: 0,
+      );
+    }
+  }
+
+  Future<void> deleteVault(int vaultId, String token) async {
+    try {
+      await _service.deleteVault(vaultId, token);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException(
+        message: 'Failed to delete vault. Please try again.',
+        statusCode: 0,
+      );
+    }
+  }
+
+  Future<VaultListModel> updateVault(
+    int vaultId,
+    String name,
+    String token,
+  ) async {
+    try {
+      return await _service.updateVault(vaultId, name, token);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException(
+        message: 'Failed to update vault. Please try again.',
         statusCode: 0,
       );
     }

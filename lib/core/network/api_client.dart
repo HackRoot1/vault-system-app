@@ -61,6 +61,67 @@ class ApiClient {
       );
     }
   }
+
+  static Future<Map<String, dynamic>> put(
+    String endpoint,
+    Map<String, dynamic> body, {
+    required String token,
+  }) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+    final response = await http
+        .put(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return decoded;
+    } else {
+      final message = decoded['message'] ?? 'Something went wrong';
+      throw ApiException(
+        message: message.toString(),
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
+  static Future<Map<String, dynamic>> delete(
+    String endpoint, {
+    required String token,
+  }) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+    final response = await http
+        .delete(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+
+    Map<String, dynamic> decoded = const {};
+    if (response.body.isNotEmpty) {
+      decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    }
+
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return decoded;
+    } else {
+      final message = decoded['message'] ?? 'Something went wrong';
+      throw ApiException(
+        message: message.toString(),
+        statusCode: response.statusCode,
+      );
+    }
+  }
 }
 
 class ApiException implements Exception {

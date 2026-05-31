@@ -9,6 +9,7 @@ import '../../../../core/widgets/vault_bottom_nav.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import '../../data/models/vault_list_model.dart';
 import '../../data/repositories/vault_repository.dart';
+import 'create_vault_screen.dart';
 import '../widgets/vault_list_tile.dart';
 
 class VaultListScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class _VaultListScreenState extends State<VaultListScreen> {
   List<VaultListModel> _allVaults = [];
   List<VaultListModel> _filteredVaults = [];
   bool _isLoading = true;
+  bool _isDeleting = false;
   String? _errorMessage;
   bool _showSearchClear = false;
 
@@ -326,6 +328,23 @@ class _VaultListScreenState extends State<VaultListScreen> {
     setState(() => vault.isFavorited = !vault.isFavorited);
   }
 
+  Future<void> _navigateToEdit(VaultListModel vault) async {
+    await Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            CreateVaultScreen(
+              token: widget.token,
+              userName: widget.userName,
+              vaultToEdit: vault,
+            ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
+    if (mounted) await _loadVaults();
+  }
+
   void _showVaultOptions(VaultListModel vault) {
     showModalBottomSheet<void>(
       context: context,
@@ -371,9 +390,12 @@ class _VaultListScreenState extends State<VaultListScreen> {
               Divider(color: Colors.white.withValues(alpha: 0.08)),
               _OptionRow(
                 icon: Icons.edit_outlined,
-                label: 'Rename',
+                label: 'Edit Vault',
                 color: AppColors.secondaryText,
-                onTap: () {},
+                onTap: () {
+                  Navigator.pop(context);
+                  _navigateToEdit(vault);
+                },
               ),
               _OptionRow(
                 icon: Icons.copy_outlined,
@@ -389,6 +411,7 @@ class _VaultListScreenState extends State<VaultListScreen> {
                 label: 'Delete Vault',
                 color: const Color(0xFFCC3333),
                 onTap: () {
+                  if (_isDeleting) return;
                   Navigator.pop(context);
                   _confirmDelete(vault);
                 },
@@ -401,55 +424,205 @@ class _VaultListScreenState extends State<VaultListScreen> {
     );
   }
 
-  void _confirmDelete(VaultListModel vault) {
-    showDialog<void>(
+  Future<void> _confirmDelete(VaultListModel vault) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF112240),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.r),
         ),
-        title: Text(
-          'Delete Vault',
-          style: TextStyle(
-            fontSize: 15.sp,
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning_amber_outlined,
+              size: 20.sp,
+              color: const Color(0xFFCC3333),
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              'Delete Vault',
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
-        content: Text(
-          'Are you sure you want to delete "${vault.name}"? '
-          'This action cannot be undone.',
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: AppColors.secondaryText,
-            height: 1.5,
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete:',
+              style: TextStyle(fontSize: 12.sp, color: const Color(0xFF8899AA)),
+            ),
+            SizedBox(height: 8.h),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D1B2A),
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: const Color(0x14FFFFFF)),
+              ),
+              child: Text(
+                vault.name,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            SizedBox(height: 10.h),
+            Text(
+              'This will permanently delete the vault and all its contents. '
+              'This action cannot be undone.',
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: const Color(0xFFCC3333),
+                height: 1.5,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.secondaryText,
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(fontSize: 13.sp, color: const Color(0xFF8899AA)),
             ),
-            child: const Text('Cancel'),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _allVaults.removeWhere((v) => v.id == vault.id);
-                _filteredVaults.removeWhere((v) => v.id == vault.id);
-              });
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFCC3333),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFCC3333),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             ),
-            child: const Text('Delete'),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'Delete',
+              style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
     );
+
+    if (confirmed != true) return;
+    await _deleteVault(vault);
+  }
+
+  Future<void> _deleteVault(VaultListModel vault) async {
+    setState(() => _isDeleting = true);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 14.w,
+                height: 14.w,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(width: 10.w),
+              Text(
+                'Deleting vault...',
+                style: TextStyle(fontSize: 13.sp, color: Colors.white),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF112240),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          duration: const Duration(seconds: 10),
+        ),
+      );
+    }
+
+    try {
+      await _repository.deleteVault(vault.id, widget.token);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                color: Colors.white,
+                size: 16.sp,
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                '"${vault.name}" deleted successfully',
+                style: TextStyle(fontSize: 13.sp, color: Colors.white),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1A6B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      setState(() {
+        _allVaults.removeWhere((v) => v.id == vault.id);
+        _filteredVaults.removeWhere((v) => v.id == vault.id);
+      });
+
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+      await _loadVaults();
+      if (!mounted) return;
+    } on ApiException catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white, size: 16.sp),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: Text(
+                  e.message,
+                  style: TextStyle(fontSize: 13.sp, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFCC3333),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
   }
 
   void _showFilterSheet() {

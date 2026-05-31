@@ -44,4 +44,25 @@ class VaultItemService {
     );
     return VaultListModel.fromJson(json['data'] as Map<String, dynamic>);
   }
+
+  Future<void> deleteItem(int vaultId, int itemId, String token) async {
+    await ApiClient.delete(
+      ApiConstants.vaultItem(vaultId, itemId),
+      token: token,
+    );
+  }
+
+  Future<VaultItemModel> updateItem(
+    int vaultId,
+    int itemId,
+    CreateVaultItemRequestModel request,
+    String token,
+  ) async {
+    final json = await ApiClient.put(
+      ApiConstants.vaultItem(vaultId, itemId),
+      request.toJson(),
+      token: token,
+    );
+    return VaultItemModel.fromJson(json['data'] as Map<String, dynamic>);
+  }
 }
