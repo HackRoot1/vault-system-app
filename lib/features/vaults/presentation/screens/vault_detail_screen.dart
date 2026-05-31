@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -42,7 +41,8 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
   List<VaultItemModel> _items = [];
   bool _isLoading = true;
   String? _errorMessage;
-  Uint8List? _derivedKey;
+  SecretKey? _derivedKey;
+  final Map<int, Map<String, dynamic>?> _decryptedCache = {};
 
   @override
   void initState() {
@@ -66,7 +66,7 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
 
       final masterPassword = TokenStorage.getMasterPassword();
       if (masterPassword != null && masterPassword.isNotEmpty) {
-        _deriveKey(masterPassword);
+        await _deriveAndDecryptAll(masterPassword);
       }
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -77,13 +77,30 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
     }
   }
 
-  void _deriveKey(String masterPassword) {
-    final key = VaultCrypto.deriveKey(
-      masterPassword: masterPassword,
-      saltHex: widget.cryptoSalt,
-      iterations: widget.cryptoIterations,
-    );
-    if (mounted) setState(() => _derivedKey = key);
+  Future<void> _deriveAndDecryptAll(String masterPassword) async {
+    try {
+      final key = await VaultCrypto.deriveKey(
+        masterPassword: masterPassword,
+        saltHex: widget.cryptoSalt,
+        iterations: widget.cryptoIterations,
+      );
+      if (!mounted) return;
+
+      final cache = <int, Map<String, dynamic>?>{};
+      for (final item in _items) {
+        cache[item.id] = await item.decryptPayload(key);
+        if (!mounted) return;
+      }
+
+      setState(() {
+        _derivedKey = key;
+        _decryptedCache
+          ..clear()
+          ..addAll(cache);
+      });
+    } catch (_) {
+      // Silent fail; user can manually trigger decrypt.
+    }
   }
 
   Widget _buildBody() {
@@ -196,7 +213,7 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
                 ),
               );
             },
-            child: VaultItemTile(item: item, decryptionKey: _derivedKey),
+            child: VaultItemTile(item: item, payload: _decryptedCache[item.id]),
           );
         },
       ),
@@ -207,10 +224,11 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
     var masterPassword = TokenStorage.getMasterPassword();
     if (masterPassword == null || masterPassword.isEmpty) {
       masterPassword = await _showMasterPasswordDialog();
+      if (!mounted) return;
       if (masterPassword == null) return;
       TokenStorage.setMasterPassword(masterPassword);
     }
-    _deriveKey(masterPassword);
+    await _deriveAndDecryptAll(masterPassword);
   }
 
   Future<String?> _showMasterPasswordDialog() async {
@@ -357,7 +375,10 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
                   : AppColors.secondaryText,
             ),
             onPressed: _derivedKey != null
-                ? () => setState(() => _derivedKey = null)
+                ? () => setState(() {
+                    _derivedKey = null;
+                    _decryptedCache.clear();
+                  })
                 : _promptAndDeriveKey,
           ),
           SizedBox(width: 8.w),

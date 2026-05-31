@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
+
+import 'package:cryptography/cryptography.dart';
 
 import '../../../../core/crypto/vault_crypto.dart';
 
@@ -37,9 +38,9 @@ class VaultItemModel {
     );
   }
 
-  Map<String, dynamic>? decryptPayload(Uint8List key) {
+  Future<Map<String, dynamic>?> decryptPayload(SecretKey key) async {
     try {
-      final plain = VaultCrypto.decrypt(
+      final plain = await VaultCrypto.decrypt(
         encryptedDataB64: encryptedData,
         ivB64: iv,
         tagB64: tag,

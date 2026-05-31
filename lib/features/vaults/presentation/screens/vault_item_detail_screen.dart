@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -43,7 +44,7 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
   VaultItemModel? _freshItem;
   bool _isLoading = true;
   String? _errorMessage;
-  Uint8List? _derivedKey;
+  SecretKey? _derivedKey;
   Map<String, dynamic>? _decryptedPayload;
   bool _isDecrypting = false;
   bool _showSecret = false;
@@ -54,10 +55,12 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
     super.initState();
     _freshItem = widget.item;
     _loadItem();
-    final masterPassword = TokenStorage.getMasterPassword();
-    if (masterPassword != null && masterPassword.isNotEmpty) {
-      _deriveAndDecrypt(masterPassword);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final masterPassword = TokenStorage.getMasterPassword();
+      if (masterPassword != null && masterPassword.isNotEmpty) {
+        await _deriveAndDecrypt(masterPassword);
+      }
+    });
   }
 
   Future<void> _loadItem() async {
@@ -77,7 +80,7 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
         _freshItem = item;
         _isLoading = false;
       });
-      if (_derivedKey != null) _decryptPayload();
+      if (_derivedKey != null) await _decryptPayload();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -87,29 +90,52 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
     }
   }
 
-  void _deriveAndDecrypt(String masterPassword) {
+  Future<void> _deriveAndDecrypt(String masterPassword) async {
     setState(() => _isDecrypting = true);
     try {
-      final key = VaultCrypto.deriveKey(
+      final key = await VaultCrypto.deriveKey(
         masterPassword: masterPassword,
         saltHex: widget.cryptoSalt,
         iterations: widget.cryptoIterations,
       );
-      final payload = (_freshItem ?? widget.item).decryptPayload(key);
       if (!mounted) return;
+
+      final item = _freshItem ?? widget.item;
+      final payload = await item.decryptPayload(key);
+      if (!mounted) return;
+
       setState(() {
         _derivedKey = key;
         _decryptedPayload = payload;
         _isDecrypting = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _isDecrypting = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isDecrypting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Decryption failed. Check your master password.',
+              style: TextStyle(fontSize: 13.sp, color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFFCC3333),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(16.w),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+          ),
+        );
+      }
     }
   }
 
-  void _decryptPayload() {
+  Future<void> _decryptPayload() async {
     if (_derivedKey == null) return;
-    final payload = (_freshItem ?? widget.item).decryptPayload(_derivedKey!);
+    final payload = await (_freshItem ?? widget.item).decryptPayload(
+      _derivedKey!,
+    );
+    if (!mounted) return;
     setState(() => _decryptedPayload = payload);
   }
 
@@ -530,10 +556,11 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
     var masterPassword = TokenStorage.getMasterPassword();
     if (masterPassword == null || masterPassword.isEmpty) {
       masterPassword = await _showMasterPasswordDialog();
+      if (!mounted) return;
       if (masterPassword == null) return;
       TokenStorage.setMasterPassword(masterPassword);
     }
-    _deriveAndDecrypt(masterPassword);
+    await _deriveAndDecrypt(masterPassword);
   }
 
   Future<String?> _showMasterPasswordDialog() async {

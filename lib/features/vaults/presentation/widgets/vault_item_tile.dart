@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -8,18 +6,15 @@ import '../../data/models/vault_item_model.dart';
 class VaultItemTile extends StatelessWidget {
   const VaultItemTile({
     required this.item,
-    required this.decryptionKey,
+    required this.payload,
     super.key,
   });
 
   final VaultItemModel item;
-  final Uint8List? decryptionKey;
+  final Map<String, dynamic>? payload;
 
   @override
   Widget build(BuildContext context) {
-    final payload = decryptionKey != null
-        ? item.decryptPayload(decryptionKey!)
-        : null;
     final title =
         payload?['title'] ?? payload?['card_name'] ?? 'Encrypted Item';
     final subtitle = _buildSubtitle(item.type, payload);

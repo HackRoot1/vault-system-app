@@ -502,6 +502,7 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
     var masterPassword = TokenStorage.getMasterPassword();
     if (masterPassword == null || masterPassword.isEmpty) {
       masterPassword = await _promptMasterPassword();
+      if (!mounted) return;
       if (masterPassword == null) return;
       TokenStorage.setMasterPassword(masterPassword);
     }
@@ -509,11 +510,12 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final key = VaultCrypto.deriveKey(
+      final key = await VaultCrypto.deriveKey(
         masterPassword: masterPassword,
         saltHex: widget.cryptoSalt,
         iterations: widget.cryptoIterations,
       );
+      if (!mounted) return;
 
       final payload = switch (_selectedType) {
         VaultItemType.login => {
@@ -535,16 +537,17 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
         },
       };
 
-      final encrypted = VaultCrypto.encrypt(
+      final encrypted = await VaultCrypto.encrypt(
         plainText: jsonEncode(payload),
         key: key,
       );
+      if (!mounted) return;
 
       final request = CreateVaultItemRequestModel(
         type: _selectedType.apiValue,
-        encryptedData: encrypted['encrypted_data']!,
-        iv: encrypted['iv']!,
-        tag: encrypted['tag']!,
+        encryptedData: encrypted.encryptedData,
+        iv: encrypted.iv,
+        tag: encrypted.tag,
       );
 
       await _repository.createItem(_selectedVault!.id, request, widget.token);
