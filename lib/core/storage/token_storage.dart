@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 class TokenStorage {
   const TokenStorage._();
@@ -48,12 +49,16 @@ class TokenStorage {
 
   static Future<String?> getCryptoSalt() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_cryptoSaltKey);
+    final salt = prefs.getString(_cryptoSaltKey);
+    debugPrint('[TokenStorage] getCryptoSalt: $salt');
+    return salt;
   }
 
-  static Future<int?> getCryptoIterations() async {
+  static Future<int> getCryptoIterations() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_cryptoIterationsKey);
+    final iterations = prefs.getInt(_cryptoIterationsKey) ?? 100000;
+    debugPrint('[TokenStorage] getCryptoIterations: $iterations');
+    return iterations;
   }
 
   static void setMasterPassword(String password) {

@@ -8,6 +8,7 @@ import '../../../../core/crypto/vault_crypto.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import '../../data/models/create_vault_item_request_model.dart';
 import '../../data/models/vault_list_model.dart';
 import '../../data/repositories/vault_repository.dart';
@@ -93,6 +94,40 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
   void initState() {
     super.initState();
     _selectedVault = widget.preselectedVault;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _validateCryptoParams(),
+    );
+  }
+
+  Future<void> _validateCryptoParams() async {
+    final salt = await TokenStorage.getCryptoSalt();
+    if (!mounted) return;
+    if (salt == null || salt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Session expired. Please log in again.',
+            style: TextStyle(fontSize: 13.sp, color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFFCC3333),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+        ),
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -514,6 +549,12 @@ class _CreateVaultItemScreenState extends State<CreateVaultItemScreen> {
         masterPassword: masterPassword,
         saltHex: widget.cryptoSalt,
         iterations: widget.cryptoIterations,
+      );
+      if (!mounted) return;
+
+      final keyBytes = await key.extractBytes();
+      debugPrint(
+        'key hex: ${keyBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join()}',
       );
       if (!mounted) return;
 

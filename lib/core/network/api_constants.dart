@@ -6,6 +6,9 @@ class ApiConstants {
   static const String register = '/register';
   static const String login = '/login';
   static const String dashboard = '/dashboard';
+  static const String recentVaults = '/dashboard/recent-vaults';
+  static const String recentItems = '/dashboard/recent-items';
+  static const String recentFiles = '/dashboard/recent-files';
   static const String vaults = '/vaults';
 
   static String vaultItems(int vaultId) => '/vaults/$vaultId/items';

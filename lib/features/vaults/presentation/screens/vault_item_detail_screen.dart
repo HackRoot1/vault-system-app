@@ -11,6 +11,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vault_bottom_nav.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import '../../data/models/vault_item_model.dart';
 import '../../data/models/vault_list_model.dart';
@@ -54,6 +55,9 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
   void initState() {
     super.initState();
     _freshItem = widget.item;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _validateCryptoParams(),
+    );
     _loadItem();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final masterPassword = TokenStorage.getMasterPassword();
@@ -61,6 +65,37 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
         await _deriveAndDecrypt(masterPassword);
       }
     });
+  }
+
+  Future<void> _validateCryptoParams() async {
+    final salt = await TokenStorage.getCryptoSalt();
+    if (!mounted) return;
+    if (salt == null || salt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Session expired. Please log in again.',
+            style: TextStyle(fontSize: 13.sp, color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFFCC3333),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+        ),
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+        (route) => false,
+      );
+    }
   }
 
   Future<void> _loadItem() async {
@@ -101,7 +136,22 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
       if (!mounted) return;
 
       final item = _freshItem ?? widget.item;
+      final keyBytes = await key.extractBytes();
+      debugPrint('=== FLUTTER KEY ===');
+      debugPrint(
+        'key hex: ${keyBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join()}',
+      );
+      debugPrint('key length: ${keyBytes.length} bytes');
       final payload = await item.decryptPayload(key);
+
+      // Also print the raw encrypted fields being decrypted
+      debugPrint('encrypted_data: ${item.encryptedData}');
+      debugPrint('iv: ${item.iv}');
+      debugPrint('tag: ${item.tag}');
+      debugPrint('salt used: ${widget.cryptoSalt}');
+      debugPrint('iterations used: ${widget.cryptoIterations}');
+      debugPrint('==================');
+
       if (!mounted) return;
 
       setState(() {

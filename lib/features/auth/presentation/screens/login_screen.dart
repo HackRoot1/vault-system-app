@@ -95,10 +95,16 @@ class _LoginScreenState extends State<LoginScreen> {
         name: response.user.name,
         email: response.user.email,
       );
-      await TokenStorage.saveCrypto(
-        salt: response.crypto.salt,
-        iterations: response.crypto.iterations,
-      );
+      if (response.crypto.salt.isNotEmpty) {
+        await TokenStorage.saveCrypto(
+          salt: response.crypto.salt,
+          iterations: response.crypto.iterations,
+        );
+        debugPrint('[Login] saved salt: ${response.crypto.salt}');
+        debugPrint('[Login] saved iterations: ${response.crypto.iterations}');
+      } else {
+        debugPrint('[Login] WARNING: crypto.salt is empty in login response');
+      }
 
       if (!mounted) return;
 

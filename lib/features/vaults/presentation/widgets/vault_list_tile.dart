@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/storage/token_storage.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import '../../data/models/vault_list_model.dart';
 import '../screens/vault_detail_screen.dart';
 
@@ -29,15 +30,51 @@ class VaultListTile extends StatelessWidget {
     return DateTime.now().difference(created).inHours < 24;
   }
 
+  Future<(String, int)?> _getCryptoParamsOrRedirect(
+    BuildContext context,
+  ) async {
+    final salt = await TokenStorage.getCryptoSalt();
+    if (!context.mounted) return null;
+    if (salt == null || salt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Session expired. Please log in again.',
+            style: TextStyle(fontSize: 13.sp, color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFFCC3333),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+        ),
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+        (route) => false,
+      );
+      return null;
+    }
+
+    final iterations = await TokenStorage.getCryptoIterations();
+    if (!context.mounted) return null;
+    return (salt, iterations);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () async {
-        final salt = await TokenStorage.getCryptoSalt() ?? '';
-        final iterations = await TokenStorage.getCryptoIterations() ?? 100000;
-
-        if (!context.mounted) return;
+        final cryptoParams = await _getCryptoParamsOrRedirect(context);
+        if (cryptoParams == null || !context.mounted) return;
 
         Navigator.of(context).push(
           PageRouteBuilder(
@@ -46,8 +83,8 @@ class VaultListTile extends StatelessWidget {
                   vault: vault,
                   token: token,
                   userName: userName,
-                  cryptoSalt: salt,
-                  cryptoIterations: iterations,
+                  cryptoSalt: cryptoParams.$1,
+                  cryptoIterations: cryptoParams.$2,
                 ),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) =>

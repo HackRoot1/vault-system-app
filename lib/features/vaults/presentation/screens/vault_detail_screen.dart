@@ -8,6 +8,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vault_bottom_nav.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import '../../data/models/vault_item_model.dart';
 import '../../data/models/vault_list_model.dart';
@@ -43,6 +44,42 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
   String? _errorMessage;
   SecretKey? _derivedKey;
   final Map<int, Map<String, dynamic>?> _decryptedCache = {};
+
+  Future<(String, int)?> _getCryptoParamsOrRedirect() async {
+    final salt = await TokenStorage.getCryptoSalt();
+    if (!mounted) return null;
+    if (salt == null || salt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Session expired. Please log in again.',
+            style: TextStyle(fontSize: 13.sp, color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFFCC3333),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+        ),
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+        (route) => false,
+      );
+      return null;
+    }
+
+    final iterations = await TokenStorage.getCryptoIterations();
+    if (!mounted) return null;
+    return (salt, iterations);
+  }
 
   @override
   void initState() {
@@ -190,10 +227,8 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () async {
-              final salt = await TokenStorage.getCryptoSalt() ?? '';
-              final iterations =
-                  await TokenStorage.getCryptoIterations() ?? 100000;
-              if (!context.mounted) return;
+              final cryptoParams = await _getCryptoParamsOrRedirect();
+              if (cryptoParams == null || !context.mounted) return;
 
               Navigator.of(context).push(
                 PageRouteBuilder(
@@ -203,8 +238,8 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
                         vault: widget.vault,
                         token: widget.token,
                         userName: widget.userName,
-                        cryptoSalt: salt,
-                        cryptoIterations: iterations,
+                        cryptoSalt: cryptoParams.$1,
+                        cryptoIterations: cryptoParams.$2,
                       ),
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) =>

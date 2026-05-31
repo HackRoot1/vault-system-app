@@ -49,6 +49,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
       final token = await TokenStorage.getToken() ?? '';
       if (!mounted) return;
+      final saltCheck = await TokenStorage.getCryptoSalt();
+      debugPrint('[Splash] salt on restore: $saltCheck');
+      if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(

@@ -163,10 +163,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final response = await _repository.register(request);
 
       TokenStorage.setMasterPassword(_masterPasswordController.text);
-      await TokenStorage.saveCrypto(
-        salt: response.crypto.salt,
-        iterations: response.crypto.iterations,
-      );
+      if (response.crypto.salt.isNotEmpty) {
+        await TokenStorage.saveCrypto(
+          salt: response.crypto.salt,
+          iterations: response.crypto.iterations,
+        );
+        debugPrint('[Register] saved salt: ${response.crypto.salt}');
+        debugPrint(
+          '[Register] saved iterations: ${response.crypto.iterations}',
+        );
+      }
 
       if (!mounted) return;
 

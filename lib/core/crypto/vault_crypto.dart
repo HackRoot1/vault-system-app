@@ -5,7 +5,31 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 
 class VaultCrypto {
-  const VaultCrypto._();
+  // Base64
+  // Web btoa() produces standard base64 WITH padding.
+  // Some web implementations may omit padding.
+  // Always normalize before decoding.
+
+  static Uint8List _b64Decode(String input) {
+    var s = input.replaceAll('-', '+').replaceAll('_', '/');
+    switch (s.length % 4) {
+      case 0:
+        break;
+      case 2:
+        s += '==';
+      case 3:
+        s += '=';
+      default:
+        throw const FormatException('Bad base64 length');
+    }
+    return base64.decode(s);
+  }
+
+  static String _b64Encode(List<int> bytes) {
+    return base64.encode(bytes);
+  }
+
+  // Key Derivation
 
   static Future<SecretKey> deriveKey({
     required String masterPassword,
@@ -17,32 +41,42 @@ class VaultCrypto {
       iterations: iterations,
       bits: 256,
     );
-
     return pbkdf2.deriveKey(
       secretKey: SecretKey(utf8.encode(masterPassword)),
       nonce: _hexDecode(saltHex),
     );
   }
 
+  // Encryption
+  // Web Crypto output: [ciphertext bytes | 16 tag bytes]
+  // We split: encrypted_data = base64(ciphertext), tag = base64(last 16)
+  // Flutter cryptography package does the same split via secretBox.
+
   static Future<EncryptedPayload> encrypt({
     required String plainText,
     required SecretKey key,
   }) async {
-    final aesGcm = AesGcm.with256bits(nonceLength: 12);
+    final algorithm = AesGcm.with256bits(nonceLength: 12);
     final iv = _randomBytes(12);
 
-    final secretBox = await aesGcm.encrypt(
+    final secretBox = await algorithm.encrypt(
       utf8.encode(plainText),
       secretKey: key,
       nonce: iv,
     );
 
+    // secretBox.cipherText = ciphertext WITHOUT tag.
+    // secretBox.mac.bytes  = 16-byte tag.
     return EncryptedPayload(
-      encryptedData: base64.encode(secretBox.cipherText),
-      iv: base64.encode(iv),
-      tag: base64.encode(secretBox.mac.bytes),
+      encryptedData: _b64Encode(secretBox.cipherText),
+      iv: _b64Encode(iv),
+      tag: _b64Encode(secretBox.mac.bytes),
     );
   }
+
+  // Decryption
+  // Web sends: encrypted_data = base64(ciphertext), tag = base64(16-byte tag)
+  // We recombine them into SecretBox for the cryptography package.
 
   static Future<String> decrypt({
     required String encryptedDataB64,
@@ -50,38 +84,36 @@ class VaultCrypto {
     required String tagB64,
     required SecretKey key,
   }) async {
-    final aesGcm = AesGcm.with256bits(nonceLength: 12);
-    final cipherText = base64.decode(encryptedDataB64);
-    final iv = base64.decode(ivB64);
-    final tag = base64.decode(tagB64);
+    final algorithm = AesGcm.with256bits(nonceLength: 12);
 
-    final secretBox = SecretBox(
-      cipherText,
-      nonce: iv,
-      mac: Mac(tag),
-    );
+    final cipherText = _b64Decode(encryptedDataB64);
+    final iv = _b64Decode(ivB64);
+    final tag = _b64Decode(tagB64);
 
-    final plainBytes = await aesGcm.decrypt(
-      secretBox,
-      secretKey: key,
-    );
+    assert(iv.length == 12, 'IV must be 12 bytes, got ${iv.length}');
+    assert(tag.length == 16, 'Tag must be 16 bytes, got ${tag.length}');
+
+    final secretBox = SecretBox(cipherText, nonce: iv, mac: Mac(tag));
+
+    final plainBytes = await algorithm.decrypt(secretBox, secretKey: key);
 
     return utf8.decode(plainBytes);
   }
 
-  static Uint8List _randomBytes(int length) {
-    final random = Random.secure();
-    return Uint8List.fromList(
-      List.generate(length, (_) => random.nextInt(256)),
-    );
+  // Helpers
+
+  static Uint8List _randomBytes(int n) {
+    final rng = Random.secure();
+    return Uint8List.fromList(List.generate(n, (_) => rng.nextInt(256)));
   }
 
   static Uint8List _hexDecode(String hex) {
-    final bytes = <int>[];
-    for (var i = 0; i < hex.length - 1; i += 2) {
-      bytes.add(int.parse(hex.substring(i, i + 2), radix: 16));
+    final h = hex.replaceAll(' ', '').toLowerCase();
+    final out = Uint8List(h.length ~/ 2);
+    for (var i = 0; i < out.length; i++) {
+      out[i] = int.parse(h.substring(i * 2, i * 2 + 2), radix: 16);
     }
-    return Uint8List.fromList(bytes);
+    return out;
   }
 }
 

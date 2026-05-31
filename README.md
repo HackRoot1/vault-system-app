@@ -261,4 +261,15 @@ curl -X GET "https://palegreen-eagle-487743.hostingersite.com/api/files/download
 ```
 
 
-<!--  -->
+## Recent Dashboard Data
+
+```bash
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/dashboard/recent-vaults \
+  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/dashboard/recent-items \
+  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+
+curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/dashboard/recent-files \
+  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+```
