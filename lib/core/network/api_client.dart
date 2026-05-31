@@ -9,14 +9,43 @@ class ApiClient {
 
   static Future<Map<String, dynamic>> post(
     String endpoint,
-    Map<String, dynamic> body,
-  ) async {
+    Map<String, dynamic> body, {
+    String? token,
+  }) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+    final response = await http
+        .post(uri, headers: headers, body: jsonEncode(body))
+        .timeout(const Duration(seconds: 30));
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return decoded;
+    } else {
+      final message = decoded['message'] ?? 'Something went wrong';
+      throw ApiException(
+        message: message.toString(),
+        statusCode: response.statusCode,
+      );
+    }
+  }
+
+  static Future<Map<String, dynamic>> get(
+    String endpoint, {
+    required String token,
+  }) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
     final response = await http
-        .post(
+        .get(
           uri,
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(body),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
         )
         .timeout(const Duration(seconds: 30));
 

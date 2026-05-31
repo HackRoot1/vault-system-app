@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
 import '../../data/models/register_request_model.dart';
@@ -160,6 +161,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       final response = await _repository.register(request);
+
+      TokenStorage.setMasterPassword(_masterPasswordController.text);
+      await TokenStorage.saveCrypto(
+        salt: response.crypto.salt,
+        iterations: response.crypto.iterations,
+      );
 
       if (!mounted) return;
 

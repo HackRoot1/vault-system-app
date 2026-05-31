@@ -95,6 +95,10 @@ class _LoginScreenState extends State<LoginScreen> {
         name: response.user.name,
         email: response.user.email,
       );
+      await TokenStorage.saveCrypto(
+        salt: response.crypto.salt,
+        iterations: response.crypto.iterations,
+      );
 
       if (!mounted) return;
 
