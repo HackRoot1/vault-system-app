@@ -42,7 +42,7 @@ curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/login \
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/user \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 
@@ -50,7 +50,7 @@ curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/user \
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/dashboard \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 
@@ -58,21 +58,21 @@ curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/dashboard \
 
 ```bash
 curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/logout \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ## Setup Two-Factor Authentication
 
 ```bash
 curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/2fa/setup \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ## Verify Two-Factor Authentication
 
 ```bash
 curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/2fa/verify \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7" \
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f" \
   -H "Content-Type: application/json" \
   -d '{
     "code": "123456"
@@ -83,7 +83,7 @@ curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/2fa/verify \
 
 ```bash
 curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/2fa/disable \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7" \
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f" \
   -H "Content-Type: application/json" \
   -d '{
     "code": "123456"
@@ -94,14 +94,14 @@ curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/2fa/disable \
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/devices \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ## Sync Items
 
 ```bash
 curl -X GET "https://palegreen-eagle-487743.hostingersite.com/api/items/sync?last_sync=2026-04-23T12:00:00Z" \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ## Vaults
@@ -110,14 +110,14 @@ curl -X GET "https://palegreen-eagle-487743.hostingersite.com/api/items/sync?las
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ### Create Vault
 
 ```bash
 curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7" \
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My Personal Vault"
@@ -128,14 +128,14 @@ curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults \
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ### Update Vault
 
 ```bash
 curl -X PUT https://palegreen-eagle-487743.hostingersite.com/api/vaults/1 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7" \
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Updated Vault Name"
@@ -146,7 +146,7 @@ curl -X PUT https://palegreen-eagle-487743.hostingersite.com/api/vaults/1 \
 
 ```bash
 curl -X DELETE https://palegreen-eagle-487743.hostingersite.com/api/vaults/1 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ## Items
@@ -155,14 +155,14 @@ curl -X DELETE https://palegreen-eagle-487743.hostingersite.com/api/vaults/1 \
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ### Create Item
 
 ```bash
 curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7" \
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "login",
@@ -176,14 +176,14 @@ curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items/3 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ### Update Item
 
 ```bash
 curl -X PUT https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items/3 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7" \
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "login",
@@ -197,7 +197,7 @@ curl -X PUT https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items/
 
 ```bash
 curl -X DELETE https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/items/3 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ## Files
@@ -206,7 +206,7 @@ curl -X DELETE https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/ite
 
 ```bash
 curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7" \
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f" \
   -F "file=@/path/to/document.pdf" \
   -F "file_name=document.pdf" \
   -F "iv=BASE64_IV" \
@@ -217,21 +217,21 @@ curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ### Get File Metadata
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files/5 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ### Update File
 
 ```bash
 curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files/5 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7" \
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f" \
   -F "_method=PUT" \
   -F "file=@/path/to/new-document.pdf" \
   -F "file_name=new-document.pdf" \
@@ -243,14 +243,14 @@ curl -X POST https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files
 
 ```bash
 curl -X DELETE https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files/5 \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ### Get File Download URL
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/vaults/1/files/5/download-url \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```
 
 ## Download File by Token
@@ -265,11 +265,11 @@ curl -X GET "https://palegreen-eagle-487743.hostingersite.com/api/files/download
 
 ```bash
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/dashboard/recent-vaults \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/dashboard/recent-items \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 
 curl -X GET https://palegreen-eagle-487743.hostingersite.com/api/dashboard/recent-files \
-  -H "Authorization: Bearer 13|zo1ecEKLldQctOT6XZcot6dGX6p73xFtGepSPxBU5125e8e7"
+  -H "Authorization: Bearer 20|Y2xbwFbVgllYKQ4rX2qUwv0PAFV5w2rh335w9lOc14d7552f"
 ```

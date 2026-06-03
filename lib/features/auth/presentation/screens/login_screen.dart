@@ -176,6 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final statusHeight = 48.h;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.scaffoldBackground,
       body: Stack(
         children: [
@@ -413,50 +414,54 @@ class _BottomStatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 8.w,
-                    height: 8.w,
-                    decoration: const BoxDecoration(
-                      color: AppColors.statusDot,
-                      shape: BoxShape.circle,
+    return MediaQuery.removeViewInsets(
+      removeBottom: true,
+      context: context,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8.w,
+                      height: 8.w,
+                      decoration: const BoxDecoration(
+                        color: AppColors.statusDot,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 8.w),
-                  Flexible(
-                    child: Text(
-                      AppStrings.systemSecure,
-                      maxLines: 1,
-                      overflow: TextOverflow.fade,
-                      softWrap: false,
-                      style: AppTextStyles.status,
+                    SizedBox(width: 8.w),
+                    Flexible(
+                      child: Text(
+                        AppStrings.systemSecure,
+                        maxLines: 1,
+                        overflow: TextOverflow.fade,
+                        softWrap: false,
+                        style: AppTextStyles.status,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            SizedBox(width: 12.w),
-            Flexible(
-              child: Text(
-                AppStrings.encryptionStatus,
-                maxLines: 1,
-                overflow: TextOverflow.fade,
-                softWrap: false,
-                textAlign: TextAlign.end,
-                style: AppTextStyles.status,
+              SizedBox(width: 12.w),
+              Flexible(
+                child: Text(
+                  AppStrings.encryptionStatus,
+                  maxLines: 1,
+                  overflow: TextOverflow.fade,
+                  softWrap: false,
+                  textAlign: TextAlign.end,
+                  style: AppTextStyles.status,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
