@@ -14,6 +14,8 @@ import '../../../vaults/presentation/screens/create_vault_screen.dart';
 import '../../../vaults/presentation/screens/vault_detail_screen.dart';
 import '../../../vaults/presentation/screens/vault_item_detail_screen.dart';
 import '../../../vaults/presentation/screens/vault_list_screen.dart';
+import '../../../files/presentation/screens/files_screen.dart';
+import '../../../files/presentation/screens/upload_file_screen.dart';
 import '../../data/models/dashboard_stats_model.dart';
 import '../../data/models/recent_item_model.dart';
 import '../../data/repositories/dashboard_repository.dart';
@@ -23,18 +25,20 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
     required this.userName,
     required this.token,
+    this.repository,
     super.key,
   });
 
   final String userName;
   final String token;
+  final DashboardRepository? repository;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _repository = DashboardRepository();
+  late final DashboardRepository _repository;
 
   DashboardStats? _stats;
   bool _isLoading = true;
@@ -48,6 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = widget.repository ?? DashboardRepository();
     _loadDashboard();
   }
 
@@ -1010,6 +1015,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (mounted) setState(() => _selectedNavIndex = 0);
               });
         },
+        onFilesTap: () async {
+          setState(() => _selectedNavIndex = 2);
+          final navigator = Navigator.of(context);
+          var vaults = _recentVaults;
+          if (vaults.isEmpty) {
+            try {
+              vaults = await VaultRepository().getVaults(widget.token);
+            } catch (_) {}
+          }
+          if (!mounted) return;
+          navigator.push(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  FilesScreen(
+                token: widget.token,
+                userName: widget.userName,
+                vaults: vaults,
+              ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+          ).then((_) {
+            if (mounted) setState(() => _selectedNavIndex = 0);
+          });
+        },
       ),
     );
   }
@@ -1233,9 +1265,15 @@ class _QuickActionsSection extends StatelessWidget {
               ),
             ),
           ),
-          const QuickActionButton(
+          QuickActionButton(
             icon: Icons.upload_file_outlined,
             label: 'Upload File',
+            onTap: () => navigateToUploadFileScreen(
+              context,
+              token: token,
+              userName: userName,
+              vaults: recentVaults,
+            ),
           ),
         ],
       ),

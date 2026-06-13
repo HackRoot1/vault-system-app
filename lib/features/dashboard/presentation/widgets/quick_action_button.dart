@@ -7,12 +7,14 @@ class QuickActionButton extends StatelessWidget {
   const QuickActionButton({
     required this.icon,
     required this.label,
+    this.onTap,
     this.isPrimary = false,
     super.key,
   });
 
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
   final bool isPrimary;
 
   @override
@@ -20,7 +22,8 @@ class QuickActionButton extends StatelessWidget {
     final foreground = isPrimary ? AppColors.scaffoldBg : AppColors.primaryText;
 
     return GestureDetector(
-      onTap: () {},
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),

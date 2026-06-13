@@ -2,11 +2,68 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vault_system/core/constants/app_strings.dart';
+import 'package:vault_system/features/dashboard/data/models/dashboard_stats_model.dart';
+import 'package:vault_system/features/dashboard/data/models/recent_item_model.dart';
+import 'package:vault_system/features/dashboard/data/repositories/dashboard_repository.dart';
 import 'package:vault_system/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:vault_system/features/vaults/data/models/vault_list_model.dart';
 import 'package:vault_system/main.dart';
 
+class _FakeDashboardRepository extends DashboardRepository {
+  @override
+  Future<DashboardStats> getDashboard(String token) async {
+    return const DashboardStats(
+      totalVaults: 3,
+      totalItems: 12,
+      totalFiles: 4,
+      user: DashboardUser(
+        id: 1,
+        name: 'Test Operator',
+        email: 'operator@example.com',
+      ),
+    );
+  }
+
+  @override
+  Future<List<VaultListModel>> getRecentVaults(String token) async {
+    return [
+      VaultListModel(
+        id: 1,
+        name: 'Personal',
+        createdAt: '2026-06-03T00:00:00Z',
+        updatedAt: '2026-06-03T00:00:00Z',
+      ),
+    ];
+  }
+
+  @override
+  Future<List<RecentItemModel>> getRecentItems(String token) async {
+    return [
+      const RecentItemModel(
+        id: 1,
+        vaultId: 1,
+        type: 'login',
+        encryptedData: 'encrypted',
+        iv: 'iv',
+        tag: 'tag',
+        createdAt: '2026-06-03T00:00:00Z',
+      ),
+    ];
+  }
+
+  @override
+  Future<List<dynamic>> getRecentFiles(String token) async {
+    return const [];
+  }
+}
+
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('renders the login screen', (tester) async {
     await tester.pumpWidget(const VaultSystemApp());
 
@@ -80,22 +137,25 @@ void main() {
         builder: (context, child) {
           return MaterialApp(home: child);
         },
-        child: const DashboardScreen(
+        child: DashboardScreen(
           userName: 'Test Operator',
           token: 'test-token',
+          repository: _FakeDashboardRepository(),
         ),
       ),
     );
 
+    await tester.pumpAndSettle();
+
     expect(find.text('Secure Vault'), findsOneWidget);
-    expect(find.text('TOTAL VAULTS'), findsOneWidget);
-    expect(find.text('TOTAL ITEMS'), findsOneWidget);
-    expect(find.text('TOTAL FILES'), findsOneWidget);
+    expect(find.text('VAULTS'), findsOneWidget);
+    expect(find.text('ITEMS'), findsOneWidget);
+    expect(find.text('FILES'), findsOneWidget);
     expect(find.text('QUICK ACTIONS'), findsOneWidget);
     expect(find.text('Add Vault'), findsOneWidget);
     expect(find.text('Recent Vaults'), findsOneWidget);
     expect(find.text('Personal'), findsOneWidget);
     expect(find.text('Recently Added Items'), findsOneWidget);
-    expect(find.text('GitHub Credentials'), findsOneWidget);
+    expect(find.text('Login Credential'), findsOneWidget);
   });
 }

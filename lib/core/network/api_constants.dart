@@ -11,6 +11,12 @@ class ApiConstants {
   static const String recentFiles = '/dashboard/recent-files';
   static const String vaults = '/vaults';
 
+  static String vaultFiles(int vaultId) => '/vaults/$vaultId/files';
+  static String vaultFile(int vaultId, int fileId) =>
+      '/vaults/$vaultId/files/$fileId';
+  static String vaultFileDownloadUrl(int vaultId, int fileId) =>
+      '/vaults/$vaultId/files/$fileId/download-url';
+
   static String vaultItems(int vaultId) => '/vaults/$vaultId/items';
   static String vaultItem(int vaultId, int itemId) =>
       '/vaults/$vaultId/items/$itemId';
