@@ -32,6 +32,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _biometricsEnabled = false;
+  bool _biometricAvailable = false;
+  String _biometricLabel = 'Biometrics';
   bool _darkMode = true;
   String _autoLockTimer = '5 Minutes';
   final List<String> _autoLockOptions = const [
@@ -47,6 +49,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadAutoLockPref();
+    _loadBiometricState();
+  }
+
+  Future<void> _loadBiometricState() async {
+    final available = await TokenStorage.isBiometricAvailable();
+    final enabled = await TokenStorage.isBiometricEnabled();
+    final label = await TokenStorage.getBiometricLabel();
+    if (!mounted) return;
+    setState(() {
+      _biometricAvailable = available;
+      _biometricsEnabled = enabled;
+      _biometricLabel = label;
+    });
   }
 
   Future<void> _loadAutoLockPref() async {
@@ -62,6 +77,89 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auto_lock_timer', value);
     debugPrint('SettingsScreen saved auto lock preference: $value');
+  }
+
+  Future<void> _toggleBiometric(bool enable) async {
+    if (enable) {
+      final authenticated = await TokenStorage.authenticateBiometric(
+        reason: 'Verify your identity to enable biometric unlock',
+      );
+      if (!authenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Biometric verification failed.',
+                style: TextStyle(fontSize: 13.sp, color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFFCC3333),
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.all(16.w),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      final masterPassword = await TokenStorage.getMasterPasswordSecure();
+      if (masterPassword == null || masterPassword.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Open an encrypted item and enter the master password once first.',
+                style: TextStyle(fontSize: 13.sp, color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFFCC3333),
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.all(16.w),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      await TokenStorage.setBiometricEnabled(true);
+      if (!mounted) return;
+      setState(() => _biometricsEnabled = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$_biometricLabel unlock enabled.',
+            style: TextStyle(fontSize: 13.sp, color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF1A6B3A),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+        ),
+      );
+      return;
+    }
+
+    await TokenStorage.setBiometricEnabled(false);
+    if (!mounted) return;
+    setState(() => _biometricsEnabled = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$_biometricLabel unlock disabled.',
+          style: TextStyle(fontSize: 13.sp, color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF112240),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.all(16.w),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+      ),
+    );
   }
 
   Future<void> _handleLogout() async {
@@ -114,7 +212,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showEditProfilePlaceholder() => _showComingSoonSnackBar('Profile editing');
+  void _showEditProfilePlaceholder() =>
+      _showComingSoonSnackBar('Profile editing');
 
   void _showChangePasswordPlaceholder() =>
       _showComingSoonSnackBar('Change password');
@@ -124,7 +223,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF112240),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
         title: Text(
           'Coming Soon',
           style: TextStyle(
@@ -173,11 +274,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.shield_outlined,
-                    size: 16.sp,
-                    color: Colors.white,
-                  ),
+                  Icon(Icons.shield_outlined, size: 16.sp, color: Colors.white),
                   SizedBox(width: 6.w),
                   Text(
                     'VAULT',
@@ -220,10 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String label,
-  }) {
+  Widget _buildSectionHeader({required IconData icon, required String label}) {
     return Padding(
       padding: EdgeInsets.only(bottom: 4.h),
       child: Row(
@@ -331,11 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 child: const Center(
-                  child: Icon(
-                    Icons.person,
-                    size: 32,
-                    color: Color(0xFF4488FF),
-                  ),
+                  child: Icon(Icons.person, size: 32, color: Color(0xFF4488FF)),
                 ),
               ),
               Positioned(
@@ -347,10 +437,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF00CC66),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.scaffoldBg,
-                      width: 2,
-                    ),
+                    border: Border.all(color: AppColors.scaffoldBg, width: 2),
                   ),
                 ),
               ),
@@ -411,7 +498,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: const Color(0xFF112240),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
           title: Text(
             'Logout',
             style: TextStyle(
@@ -433,7 +522,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Cancel',
-                style: TextStyle(fontSize: 13.sp, color: const Color(0xFF8899AA)),
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: const Color(0xFF8899AA),
+                ),
               ),
             ),
             ElevatedButton(
@@ -520,22 +612,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: _showChangePasswordPlaceholder,
             ),
             _buildDivider(),
-            _buildSettingsRow(
-              icon: Icons.fingerprint_outlined,
-              title: 'Enable Biometrics',
-              subtitle: 'Touch ID / Face ID',
-              trailing: Switch(
-                value: _biometricsEnabled,
-                onChanged: (value) {
-                  setState(() => _biometricsEnabled = value);
-                  _showComingSoonSnackBar('Biometric authentication');
-                },
-                activeColor: const Color(0xFF2255EE),
-                activeTrackColor: const Color(0xFF2255EE).withOpacity(0.3),
-                inactiveThumbColor: const Color(0xFF445566),
-                inactiveTrackColor: const Color(0xFF1A2F4A),
+            if (_biometricAvailable)
+              _buildSettingsRow(
+                icon: Icons.fingerprint_outlined,
+                title: 'Enable $_biometricLabel',
+                subtitle: _biometricsEnabled
+                    ? '$_biometricLabel unlock is active'
+                    : 'Use $_biometricLabel to unlock vault',
+                trailing: Switch(
+                  value: _biometricsEnabled,
+                  onChanged: _toggleBiometric,
+                  activeColor: const Color(0xFF2255EE),
+                  activeTrackColor: const Color(0xFF2255EE).withOpacity(0.3),
+                  inactiveThumbColor: const Color(0xFF445566),
+                  inactiveTrackColor: const Color(0xFF1A2F4A),
+                ),
+              )
+            else
+              _buildSettingsRow(
+                icon: Icons.fingerprint_outlined,
+                title: 'Biometric Unlock',
+                subtitle: 'Not available on this device',
+                titleColor: const Color(0xFF445566),
               ),
-            ),
             _buildDivider(),
             _buildSettingsRow(
               icon: Icons.timer_outlined,
@@ -599,7 +698,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.logout, size: 18.sp, color: const Color(0xFFCC3333)),
+                    Icon(
+                      Icons.logout,
+                      size: 18.sp,
+                      color: const Color(0xFFCC3333),
+                    ),
                     SizedBox(width: 10.w),
                     Text(
                       'LOGOUT ALL DEVICES',
@@ -669,10 +772,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: () => _showComingSoonSnackBar('Theme customization'),
             ),
             SizedBox(height: 24.h),
-            _buildSectionHeader(
-              icon: Icons.info_outline,
-              label: 'ABOUT',
-            ),
+            _buildSectionHeader(icon: Icons.info_outline, label: 'ABOUT'),
             SizedBox(height: 8.h),
             _buildSettingsRow(
               title: 'App Version',
@@ -746,10 +846,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onHomeTap: () => Navigator.of(context).pushAndRemoveUntil(
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                DashboardScreen(
-              userName: widget.userName,
-              token: widget.token,
-            ),
+                DashboardScreen(userName: widget.userName, token: widget.token),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) =>
                     FadeTransition(opacity: animation, child: child),
@@ -760,10 +857,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onVaultsTap: () => Navigator.of(context).push(
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                VaultListScreen(
-              token: widget.token,
-              userName: widget.userName,
-            ),
+                VaultListScreen(token: widget.token, userName: widget.userName),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) =>
                     FadeTransition(opacity: animation, child: child),
@@ -782,10 +876,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 PageRouteBuilder(
                   pageBuilder: (context, animation, secondaryAnimation) =>
                       FilesScreen(
-                    token: widget.token,
-                    userName: widget.userName,
-                    vaults: vaults,
-                  ),
+                        token: widget.token,
+                        userName: widget.userName,
+                        vaults: vaults,
+                      ),
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) =>
                           FadeTransition(opacity: animation, child: child),
@@ -797,9 +891,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               });
         },
       ),
-      body: SafeArea(
-        child: _buildBody(),
-      ),
+      body: SafeArea(child: _buildBody()),
     );
   }
 }

@@ -44,6 +44,36 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (hasSession) {
+      final biometricEnabled = await TokenStorage.isBiometricEnabled();
+      if (!mounted) return;
+
+      if (biometricEnabled) {
+        final authenticated = await TokenStorage.authenticateBiometric(
+          reason: 'Unlock your vault',
+        );
+        if (!mounted) return;
+
+        if (!authenticated) {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  const LoginScreen(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+              transitionDuration: const Duration(milliseconds: 600),
+            ),
+          );
+          return;
+        }
+
+        final masterPassword = await TokenStorage.getMasterPasswordSecure();
+        if (masterPassword != null && masterPassword.isNotEmpty) {
+          TokenStorage.setMasterPassword(masterPassword);
+        }
+      }
+
       final name = await TokenStorage.getUserName() ?? '';
       if (!mounted) return;
 

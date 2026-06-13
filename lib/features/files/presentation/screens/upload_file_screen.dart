@@ -118,7 +118,8 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedVault = widget.preselectedVault ??
+    _selectedVault =
+        widget.preselectedVault ??
         (widget.vaults.isNotEmpty ? widget.vaults.first : null);
     WidgetsBinding.instance.addPostFrameCallback((_) => _validateSession());
   }
@@ -173,11 +174,7 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                  size: 20.sp,
-                ),
+                icon: Icon(Icons.arrow_back, color: Colors.white, size: 20.sp),
                 onPressed: () => Navigator.pop(context),
               ),
               Expanded(
@@ -615,10 +612,14 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
               onTap: () => setState(() => _selectedClassification = label),
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF1A3A6A) : const Color(0xFF112240),
+                  color: isSelected
+                      ? const Color(0xFF1A3A6A)
+                      : const Color(0xFF112240),
                   borderRadius: BorderRadius.circular(10.r),
                   border: Border.all(
-                    color: isSelected ? const Color(0xFF4488FF) : const Color(0x20FFFFFF),
+                    color: isSelected
+                        ? const Color(0xFF4488FF)
+                        : const Color(0x20FFFFFF),
                     width: isSelected ? 1.5 : 1.0,
                   ),
                 ),
@@ -628,15 +629,21 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
                     Icon(
                       _classificationIcon(label),
                       size: 16.sp,
-                      color: isSelected ? const Color(0xFF4488FF) : const Color(0xFF8899AA),
+                      color: isSelected
+                          ? const Color(0xFF4488FF)
+                          : const Color(0xFF8899AA),
                     ),
                     SizedBox(width: 8.w),
                     Text(
                       label,
                       style: TextStyle(
                         fontSize: 13.sp,
-                        color: isSelected ? Colors.white : const Color(0xFF8899AA),
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF8899AA),
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                       ),
                     ),
                   ],
@@ -673,7 +680,9 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
             width: double.infinity,
             height: 56.h,
             decoration: BoxDecoration(
-              color: _isUploading ? const Color(0xFF1A2F4A) : const Color(0xFF2255EE),
+              color: _isUploading
+                  ? const Color(0xFF1A2F4A)
+                  : const Color(0xFF2255EE),
               borderRadius: BorderRadius.circular(14.r),
               boxShadow: _isUploading
                   ? const []
@@ -698,14 +707,12 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
                     ),
                   )
                 else
-                  Icon(
-                    Icons.shield_outlined,
-                    size: 20.sp,
-                    color: Colors.white,
-                  ),
+                  Icon(Icons.shield_outlined, size: 20.sp, color: Colors.white),
                 SizedBox(width: 10.w),
                 Text(
-                  _isUploading ? 'ENCRYPTING & UPLOADING...' : 'ENCRYPT & UPLOAD',
+                  _isUploading
+                      ? 'ENCRYPTING & UPLOADING...'
+                      : 'ENCRYPT & UPLOAD',
                   style: GoogleFonts.sourceCodePro(
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w700,
@@ -722,8 +729,11 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
   }
 
   Future<String?> _promptMasterPassword() async {
+    final biometricEnabled = await TokenStorage.isBiometricEnabled();
+    final biometricLabel = await TokenStorage.getBiometricLabel();
     final controller = TextEditingController();
     var obscure = true;
+    var isAuthenticating = false;
 
     return showDialog<String>(
       context: context,
@@ -809,6 +819,59 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
                 ),
               ),
             ),
+            if (biometricEnabled)
+              TextButton(
+                onPressed: isAuthenticating
+                    ? null
+                    : () async {
+                        setDialogState(() => isAuthenticating = true);
+                        try {
+                          final authenticated =
+                              await TokenStorage.authenticateBiometric(
+                                reason: 'Unlock with $biometricLabel',
+                              );
+                          if (!authenticated) return;
+
+                          final savedPassword =
+                              await TokenStorage.getMasterPasswordSecure();
+                          if (savedPassword == null || savedPassword.isEmpty) {
+                            if (!dialogContext.mounted) return;
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'No saved master password found.',
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                backgroundColor: const Color(0xFFCC3333),
+                                behavior: SnackBarBehavior.floating,
+                                margin: EdgeInsets.all(16.w),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext, savedPassword);
+                        } finally {
+                          if (dialogContext.mounted) {
+                            setDialogState(() => isAuthenticating = false);
+                          }
+                        }
+                      },
+                child: Text(
+                  isAuthenticating ? 'Checking...' : biometricLabel,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: const Color(0xFF8899AA),
+                  ),
+                ),
+              ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2255EE),
@@ -847,8 +910,9 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
       masterPassword = await _promptMasterPassword();
       if (!mounted) return;
       if (masterPassword == null) return;
-      TokenStorage.setMasterPassword(masterPassword);
     }
+    TokenStorage.setMasterPassword(masterPassword);
+    await TokenStorage.saveMasterPasswordSecure(masterPassword);
 
     final salt = await TokenStorage.getCryptoSalt();
     if (!mounted) return;
@@ -955,9 +1019,7 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
 
   Uint8List _randomBytes(int length) {
     final rng = Random.secure();
-    return Uint8List.fromList(
-      List.generate(length, (_) => rng.nextInt(256)),
-    );
+    return Uint8List.fromList(List.generate(length, (_) => rng.nextInt(256)));
   }
 
   String _formatBytes(int bytes) {
@@ -989,9 +1051,7 @@ class _UploadFileScreenState extends State<UploadFileScreen> {
         backgroundColor: const Color(0xFFCC3333),
         behavior: SnackBarBehavior.floating,
         margin: EdgeInsets.all(16.w),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.r),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
         duration: const Duration(seconds: 4),
       ),
     );
@@ -1055,20 +1115,14 @@ class _DashedBorderPainter extends CustomPainter {
 
     final path = Path()
       ..addRRect(
-        RRect.fromRectAndRadius(
-          Offset.zero & size,
-          Radius.circular(radius),
-        ),
+        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
       );
 
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;
       while (distance < metric.length) {
         final nextDistance = distance + dashWidth;
-        canvas.drawPath(
-          metric.extractPath(distance, nextDistance),
-          paint,
-        );
+        canvas.drawPath(metric.extractPath(distance, nextDistance), paint);
         distance += dashWidth + dashSpace;
       }
     }

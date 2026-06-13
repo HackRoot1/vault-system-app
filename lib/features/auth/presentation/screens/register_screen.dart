@@ -163,6 +163,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final response = await _repository.register(request);
 
       TokenStorage.setMasterPassword(_masterPasswordController.text);
+      await TokenStorage.saveMasterPasswordSecure(
+        _masterPasswordController.text,
+      );
       if (response.crypto.salt.isNotEmpty) {
         await TokenStorage.saveCrypto(
           salt: response.crypto.salt,

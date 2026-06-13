@@ -608,14 +608,18 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
       masterPassword = await _showMasterPasswordDialog();
       if (!mounted) return;
       if (masterPassword == null) return;
-      TokenStorage.setMasterPassword(masterPassword);
     }
+    TokenStorage.setMasterPassword(masterPassword);
+    await TokenStorage.saveMasterPasswordSecure(masterPassword);
     await _deriveAndDecrypt(masterPassword);
   }
 
   Future<String?> _showMasterPasswordDialog() async {
+    final biometricEnabled = await TokenStorage.isBiometricEnabled();
+    final biometricLabel = await TokenStorage.getBiometricLabel();
     final controller = TextEditingController();
     var obscure = true;
+    var isAuthenticating = false;
 
     return showDialog<String>(
       context: context,
@@ -702,6 +706,59 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
                 ),
               ),
             ),
+            if (biometricEnabled)
+              TextButton(
+                onPressed: isAuthenticating
+                    ? null
+                    : () async {
+                        setDialogState(() => isAuthenticating = true);
+                        try {
+                          final authenticated =
+                              await TokenStorage.authenticateBiometric(
+                                reason: 'Unlock with $biometricLabel',
+                              );
+                          if (!authenticated) return;
+
+                          final savedPassword =
+                              await TokenStorage.getMasterPasswordSecure();
+                          if (savedPassword == null || savedPassword.isEmpty) {
+                            if (!ctx.mounted) return;
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'No saved master password found.',
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                backgroundColor: const Color(0xFFCC3333),
+                                behavior: SnackBarBehavior.floating,
+                                margin: EdgeInsets.all(16.w),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx, savedPassword);
+                        } finally {
+                          if (ctx.mounted) {
+                            setDialogState(() => isAuthenticating = false);
+                          }
+                        }
+                      },
+                child: Text(
+                  isAuthenticating ? 'Checking...' : biometricLabel,
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: const Color(0xFF8899AA),
+                  ),
+                ),
+              ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2255EE),
