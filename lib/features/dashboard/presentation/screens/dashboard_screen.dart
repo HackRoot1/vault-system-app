@@ -997,28 +997,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTabChanged: (i) => setState(() => _selectedNavIndex = i),
         onHomeTap: () => setState(() => _selectedNavIndex = 0),
         onVaultsTap: () {
-          setState(() => _selectedNavIndex = 1);
-          Navigator.of(context)
-              .push(
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      VaultListScreen(
-                        token: widget.token,
-                        userName: widget.userName,
-                      ),
-                  transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
-                          FadeTransition(opacity: animation, child: child),
-                  transitionDuration: const Duration(milliseconds: 300),
-                ),
-              )
-              .then((_) {
-                if (mounted) setState(() => _selectedNavIndex = 0);
-              });
+          Navigator.of(context).pushAndRemoveUntil(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  VaultListScreen(
+                    token: widget.token,
+                    userName: widget.userName,
+                  ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+            (route) => false,
+          );
         },
         onFilesTap: () async {
-          setState(() => _selectedNavIndex = 2);
-          final navigator = Navigator.of(context);
           var vaults = _recentVaults;
           if (vaults.isEmpty) {
             try {
@@ -1026,45 +1020,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
             } catch (_) {}
           }
           if (!mounted) return;
-          navigator.push(
+          Navigator.of(context).pushAndRemoveUntil(
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
                   FilesScreen(
-                token: widget.token,
-                userName: widget.userName,
-                vaults: vaults,
-              ),
+                    token: widget.token,
+                    userName: widget.userName,
+                    vaults: vaults,
+                  ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) =>
                       FadeTransition(opacity: animation, child: child),
               transitionDuration: const Duration(milliseconds: 300),
             ),
-          ).then((_) {
-            if (mounted) setState(() => _selectedNavIndex = 0);
-          });
+            (route) => false,
+          );
         },
         onSettingsTap: () async {
-          setState(() => _selectedNavIndex = 3);
           final email = await TokenStorage.getUserEmail() ?? '';
           if (!mounted) return;
-          Navigator.of(context)
-              .push(
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      SettingsScreen(
+          Navigator.of(context).pushAndRemoveUntil(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  SettingsScreen(
                     token: widget.token,
                     userName: widget.userName,
                     userEmail: email,
                   ),
-                  transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
-                          FadeTransition(opacity: animation, child: child),
-                  transitionDuration: const Duration(milliseconds: 300),
-                ),
-              )
-              .then((_) {
-                if (mounted) setState(() => _selectedNavIndex = 0);
-              });
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+            (route) => false,
+          );
         },
       ),
     );

@@ -854,7 +854,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           (route) => false,
         ),
-        onVaultsTap: () => Navigator.of(context).push(
+        onVaultsTap: () => Navigator.of(context).pushAndRemoveUntil(
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
                 VaultListScreen(token: widget.token, userName: widget.userName),
@@ -863,32 +863,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     FadeTransition(opacity: animation, child: child),
             transitionDuration: const Duration(milliseconds: 300),
           ),
+          (route) => false,
         ),
         onFilesTap: () async {
-          setState(() => _selectedNavIndex = 2);
           List<VaultListModel> vaults = [];
           try {
             vaults = await VaultRepository().getVaults(widget.token);
           } catch (_) {}
           if (!mounted) return;
-          Navigator.of(context)
-              .push(
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      FilesScreen(
-                        token: widget.token,
-                        userName: widget.userName,
-                        vaults: vaults,
-                      ),
-                  transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) =>
-                          FadeTransition(opacity: animation, child: child),
-                  transitionDuration: const Duration(milliseconds: 300),
-                ),
-              )
-              .then((_) {
-                if (mounted) setState(() => _selectedNavIndex = 3);
-              });
+          Navigator.of(context).pushAndRemoveUntil(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  FilesScreen(
+                    token: widget.token,
+                    userName: widget.userName,
+                    vaults: vaults,
+                  ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+            (route) => false,
+          );
         },
       ),
       body: SafeArea(child: _buildBody()),

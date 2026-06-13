@@ -85,11 +85,7 @@ class _FilesScreenState extends State<FilesScreen> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.shield_outlined,
-                    size: 18.sp,
-                    color: Colors.white,
-                  ),
+                  Icon(Icons.shield_outlined, size: 18.sp, color: Colors.white),
                   SizedBox(width: 6.w),
                   Text(
                     'Secure Vault',
@@ -140,12 +136,13 @@ class _FilesScreenState extends State<FilesScreen> {
       final files = await _repository.getFiles(selectedVault.id, widget.token);
       if (!mounted) return;
 
-      final exts = files
-          .map((f) => f.extension.toUpperCase())
-          .where((e) => e.isNotEmpty)
-          .toSet()
-          .toList()
-        ..sort();
+      final exts =
+          files
+              .map((f) => f.extension.toUpperCase())
+              .where((e) => e.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
 
       setState(() {
         _allFiles = files;
@@ -167,7 +164,8 @@ class _FilesScreenState extends State<FilesScreen> {
     final query = _searchController.text.trim().toLowerCase();
     final filtered = _allFiles.where((file) {
       final matchesFilter =
-          _selectedFilter == 'All' || file.extension.toUpperCase() == _selectedFilter;
+          _selectedFilter == 'All' ||
+          file.extension.toUpperCase() == _selectedFilter;
       final matchesSearch =
           query.isEmpty || file.fileName.toLowerCase().contains(query);
       return matchesFilter && matchesSearch;
@@ -186,12 +184,18 @@ class _FilesScreenState extends State<FilesScreen> {
       case _FileSortMode.alphabetical:
         return a.fileName.toLowerCase().compareTo(b.fileName.toLowerCase());
       case _FileSortMode.oldest:
-        return DateTime.tryParse(a.createdAt)
-                ?.compareTo(DateTime.tryParse(b.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0)) ??
+        return DateTime.tryParse(a.createdAt)?.compareTo(
+              DateTime.tryParse(b.createdAt) ??
+                  DateTime.fromMillisecondsSinceEpoch(0),
+            ) ??
             0;
       case _FileSortMode.recent:
-        return (DateTime.tryParse(b.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0))
-            .compareTo(DateTime.tryParse(a.createdAt) ?? DateTime.fromMillisecondsSinceEpoch(0));
+        return (DateTime.tryParse(b.createdAt) ??
+                DateTime.fromMillisecondsSinceEpoch(0))
+            .compareTo(
+              DateTime.tryParse(a.createdAt) ??
+                  DateTime.fromMillisecondsSinceEpoch(0),
+            );
     }
   }
 
@@ -238,7 +242,11 @@ class _FilesScreenState extends State<FilesScreen> {
                 _searchController.clear();
                 FocusScope.of(context).unfocus();
               },
-              child: Icon(Icons.close, size: 16.sp, color: const Color(0xFF8899AA)),
+              child: Icon(
+                Icons.close,
+                size: 16.sp,
+                color: const Color(0xFF8899AA),
+              ),
             ),
         ],
       ),
@@ -335,7 +343,9 @@ class _FilesScreenState extends State<FilesScreen> {
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF0D1B2A) : const Color(0xFF8899AA),
+                  color: isSelected
+                      ? const Color(0xFF0D1B2A)
+                      : const Color(0xFF8899AA),
                 ),
               ),
             ),
@@ -364,11 +374,18 @@ class _FilesScreenState extends State<FilesScreen> {
             onTap: _showFilterSortSheet,
             child: Row(
               children: [
-                Icon(Icons.filter_list, size: 18.sp, color: const Color(0xFF8899AA)),
+                Icon(
+                  Icons.filter_list,
+                  size: 18.sp,
+                  color: const Color(0xFF8899AA),
+                ),
                 SizedBox(width: 4.w),
                 Text(
                   'Filter',
-                  style: TextStyle(fontSize: 13.sp, color: const Color(0xFF8899AA)),
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    color: const Color(0xFF8899AA),
+                  ),
                 ),
               ],
             ),
@@ -403,7 +420,10 @@ class _FilesScreenState extends State<FilesScreen> {
               Text(
                 _errorMessage!,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13.sp, color: const Color(0xFF8899AA)),
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: const Color(0xFF8899AA),
+                ),
               ),
               SizedBox(height: 16.h),
               ElevatedButton(
@@ -447,7 +467,10 @@ class _FilesScreenState extends State<FilesScreen> {
               Text(
                 'No files match "${_searchController.text}"',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13.sp, color: const Color(0xFF8899AA)),
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: const Color(0xFF8899AA),
+                ),
               ),
             ],
           ),
@@ -506,15 +529,16 @@ class _FilesScreenState extends State<FilesScreen> {
             SizedBox(height: 20.h),
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => navigateToUploadFileScreen(
-                context,
-                token: widget.token,
-                userName: widget.userName,
-                vaults: _vaults,
-                preselectedVault: _selectedVault,
-              ).then((opened) {
-                if (mounted && opened) _loadFiles();
-              }),
+              onTap: () =>
+                  navigateToUploadFileScreen(
+                    context,
+                    token: widget.token,
+                    userName: widget.userName,
+                    vaults: _vaults,
+                    preselectedVault: _selectedVault,
+                  ).then((opened) {
+                    if (mounted && opened) _loadFiles();
+                  }),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                 decoration: BoxDecoration(
@@ -567,15 +591,16 @@ class _FilesScreenState extends State<FilesScreen> {
             SizedBox(height: 20.h),
             GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => navigateToUploadFileScreen(
-                context,
-                token: widget.token,
-                userName: widget.userName,
-                vaults: _vaults,
-                preselectedVault: _selectedVault,
-              ).then((opened) {
-                if (mounted && opened) _loadFiles();
-              }),
+              onTap: () =>
+                  navigateToUploadFileScreen(
+                    context,
+                    token: widget.token,
+                    userName: widget.userName,
+                    vaults: _vaults,
+                    preselectedVault: _selectedVault,
+                  ).then((opened) {
+                    if (mounted && opened) _loadFiles();
+                  }),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                 decoration: BoxDecoration(
@@ -715,7 +740,9 @@ class _FilesScreenState extends State<FilesScreen> {
           backgroundColor: const Color(0xFF112240),
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.all(16.w),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
           duration: const Duration(seconds: 20),
         ),
       );
@@ -752,7 +779,9 @@ class _FilesScreenState extends State<FilesScreen> {
             backgroundColor: const Color(0xFF112240),
             behavior: SnackBarBehavior.floating,
             margin: EdgeInsets.all(16.w),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.r),
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -792,14 +821,18 @@ class _FilesScreenState extends State<FilesScreen> {
           backgroundColor: const Color(0xFF1A6B3A),
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.all(16.w),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
           duration: const Duration(seconds: 3),
         ),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      debugPrint('FilesScreen download ApiException: ${e.statusCode} ${e.message}');
+      debugPrint(
+        'FilesScreen download ApiException: ${e.statusCode} ${e.message}',
+      );
       _showErrorSnackBar('Download failed (${e.statusCode}): ${e.message}');
     } catch (_) {
       if (!mounted) return;
@@ -832,7 +865,9 @@ class _FilesScreenState extends State<FilesScreen> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           backgroundColor: const Color(0xFF112240),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
+          ),
           title: Text(
             'Set Download Folder',
             style: TextStyle(
@@ -850,7 +885,10 @@ class _FilesScreenState extends State<FilesScreen> {
               onPressed: () => Navigator.of(dialogContext).pop(false),
               child: Text(
                 'Cancel',
-                style: TextStyle(fontSize: 13.sp, color: const Color(0xFF8899AA)),
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: const Color(0xFF8899AA),
+                ),
               ),
             ),
             TextButton(
@@ -906,7 +944,9 @@ class _FilesScreenState extends State<FilesScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF112240),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
         title: Row(
           children: [
             Icon(
@@ -976,7 +1016,9 @@ class _FilesScreenState extends State<FilesScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFCC3333),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
             ),
             onPressed: () => Navigator.pop(dialogContext, true),
@@ -1030,7 +1072,11 @@ class _FilesScreenState extends State<FilesScreen> {
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.check_circle_outline, color: Colors.white, size: 16.sp),
+              Icon(
+                Icons.check_circle_outline,
+                color: Colors.white,
+                size: 16.sp,
+              ),
               SizedBox(width: 8.w),
               Text(
                 'File deleted successfully',
@@ -1041,7 +1087,9 @@ class _FilesScreenState extends State<FilesScreen> {
           backgroundColor: const Color(0xFF1A6B3A),
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.all(16.w),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -1084,7 +1132,11 @@ class _FilesScreenState extends State<FilesScreen> {
               SizedBox(height: 16.h),
               Row(
                 children: [
-                  Icon(Icons.lock_outline, size: 14.sp, color: const Color(0xFF8899AA)),
+                  Icon(
+                    Icons.lock_outline,
+                    size: 14.sp,
+                    color: const Color(0xFF8899AA),
+                  ),
                   SizedBox(width: 8.w),
                   Text(
                     'Encrypted File',
@@ -1219,18 +1271,18 @@ class _FilesScreenState extends State<FilesScreen> {
   Future<void> _openSettingsScreen() async {
     final email = await TokenStorage.getUserEmail() ?? '';
     if (!mounted) return;
-    Navigator.of(context).push(
+    Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => SettingsScreen(
           token: widget.token,
           userName: widget.userName,
           userEmail: email,
         ),
-        transitionsBuilder:
-            (context, animation, secondaryAnimation, child) =>
-                FadeTransition(opacity: animation, child: child),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 300),
       ),
+      (route) => false,
     );
   }
 
@@ -1265,15 +1317,16 @@ class _FilesScreenState extends State<FilesScreen> {
       appBar: _buildAppBar(),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2255EE),
-        onPressed: () => navigateToUploadFileScreen(
-          context,
-          token: widget.token,
-          userName: widget.userName,
-          vaults: _vaults,
-          preselectedVault: _selectedVault,
-        ).then((opened) {
-          if (mounted && opened) _loadFiles();
-        }),
+        onPressed: () =>
+            navigateToUploadFileScreen(
+              context,
+              token: widget.token,
+              userName: widget.userName,
+              vaults: _vaults,
+              preselectedVault: _selectedVault,
+            ).then((opened) {
+              if (mounted && opened) _loadFiles();
+            }),
         child: Icon(
           Icons.upload_file_outlined,
           color: Colors.white,
@@ -1286,10 +1339,7 @@ class _FilesScreenState extends State<FilesScreen> {
         onHomeTap: () => Navigator.of(context).pushAndRemoveUntil(
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                DashboardScreen(
-              userName: widget.userName,
-              token: widget.token,
-            ),
+                DashboardScreen(userName: widget.userName, token: widget.token),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) =>
                     FadeTransition(opacity: animation, child: child),
@@ -1297,18 +1347,16 @@ class _FilesScreenState extends State<FilesScreen> {
           ),
           (route) => false,
         ),
-        onVaultsTap: () => Navigator.of(context).push(
+        onVaultsTap: () => Navigator.of(context).pushAndRemoveUntil(
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                VaultListScreen(
-              token: widget.token,
-              userName: widget.userName,
-            ),
+                VaultListScreen(token: widget.token, userName: widget.userName),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) =>
                     FadeTransition(opacity: animation, child: child),
             transitionDuration: const Duration(milliseconds: 300),
           ),
+          (route) => false,
         ),
         onSettingsTap: _openSettingsScreen,
       ),

@@ -10,7 +10,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vault_bottom_nav.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../../files/presentation/screens/files_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
+import 'vault_list_screen.dart';
 import '../../data/models/vault_item_model.dart';
 import '../../data/models/vault_list_model.dart';
 import '../../data/repositories/vault_repository.dart';
@@ -1053,10 +1055,48 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
             (route) => false,
           );
         },
+        onVaultsTap: () {
+          Navigator.of(context).pushAndRemoveUntil(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  VaultListScreen(
+                    token: widget.token,
+                    userName: widget.userName,
+                  ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+            (route) => false,
+          );
+        },
+        onFilesTap: () async {
+          var vaults = <VaultListModel>[];
+          try {
+            vaults = await _repository.getVaults(widget.token);
+          } catch (_) {}
+          if (!mounted) return;
+          Navigator.of(context).pushAndRemoveUntil(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  FilesScreen(
+                    token: widget.token,
+                    userName: widget.userName,
+                    vaults: vaults,
+                  ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+            (route) => false,
+          );
+        },
         onSettingsTap: () async {
           final email = await TokenStorage.getUserEmail() ?? '';
           if (!context.mounted) return;
-          Navigator.of(context).push(
+          Navigator.of(context).pushAndRemoveUntil(
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
                   SettingsScreen(
@@ -1069,6 +1109,7 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
                       FadeTransition(opacity: animation, child: child),
               transitionDuration: const Duration(milliseconds: 300),
             ),
+            (route) => false,
           );
         },
       ),
