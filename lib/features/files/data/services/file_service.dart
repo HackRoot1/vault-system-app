@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_constants.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
@@ -34,6 +35,68 @@ class FileService {
       token: token,
     );
     return json['data']['download_url'] as String;
+  }
+
+  Future<Uint8List> downloadFile(
+    String downloadUrlOrToken, {
+    String? token,
+  }) async {
+    final uri = downloadUrlOrToken.startsWith('http')
+        ? Uri.parse(downloadUrlOrToken)
+        : downloadUrlOrToken.startsWith('/')
+            ? Uri.parse('${ApiConstants.baseUrl}$downloadUrlOrToken')
+            : downloadUrlOrToken.startsWith('files/download/')
+                ? Uri.parse('${ApiConstants.baseUrl}/$downloadUrlOrToken')
+                : Uri.parse(
+                    '${ApiConstants.baseUrl}/files/download/${Uri.encodeComponent(downloadUrlOrToken)}',
+                  );
+
+    final headers = <String, String>{
+      'Accept': 'application/octet-stream',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    final response = await http
+        .get(uri, headers: headers)
+        .timeout(const Duration(seconds: 120));
+    debugPrint(
+      'FileService download request: ${uri.toString()} status=${response.statusCode} bytes=${response.bodyBytes.length}',
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return response.bodyBytes;
+    }
+
+    if (response.body.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          debugPrint(
+            'FileService download error response: ${response.statusCode} ${decoded['message']}',
+          );
+          throw ApiException(
+            message: decoded['message']?.toString() ?? 'Download failed',
+            statusCode: response.statusCode,
+          );
+        }
+      } catch (_) {
+        debugPrint(
+          'FileService download non-JSON error response: ${response.statusCode} ${response.body}',
+        );
+        throw ApiException(
+          message: response.body,
+          statusCode: response.statusCode,
+        );
+      }
+    }
+
+    debugPrint(
+      'FileService download empty/unknown failure: ${response.statusCode}',
+    );
+    throw ApiException(
+      message: 'Download failed',
+      statusCode: response.statusCode,
+    );
   }
 
   Future<void> deleteFile(int vaultId, int fileId, String token) async {

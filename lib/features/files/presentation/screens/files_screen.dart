@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/storage/download_storage.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vault_bottom_nav.dart';
@@ -712,16 +716,58 @@ class _FilesScreenState extends State<FilesScreen> {
           behavior: SnackBarBehavior.floating,
           margin: EdgeInsets.all(16.w),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
-          duration: const Duration(seconds: 30),
+          duration: const Duration(seconds: 20),
         ),
       );
 
-      final downloadUrl = await _repository.getDownloadUrl(
+      final downloadUrlOrToken = await _repository.getDownloadUrl(
         file.vaultId,
         file.id,
         widget.token,
       );
       if (!mounted) return;
+      debugPrint(
+        'FilesScreen download-url for file=${file.id}, vault=${file.vaultId}: $downloadUrlOrToken',
+      );
+
+      final bytes = await _repository.downloadFile(
+        downloadUrlOrToken,
+        token: widget.token,
+      );
+      if (!mounted) return;
+      debugPrint(
+        'FilesScreen downloaded bytes for file=${file.id}: ${bytes.length}',
+      );
+
+      final savePath = await _resolveDownloadPath(file.fileName);
+      if (!mounted) return;
+      if (savePath == null) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Download folder not selected.',
+              style: TextStyle(fontSize: 13.sp, color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF112240),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.all(16.w),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+      debugPrint('FilesScreen save-path for file=${file.id}: $savePath');
+
+      try {
+        await File(savePath).writeAsBytes(bytes, flush: true);
+        debugPrint('FilesScreen wrote file to: $savePath');
+      } catch (e, st) {
+        debugPrint('FilesScreen write error: $e');
+        debugPrint('FilesScreen write stack: $st');
+        rethrow;
+      }
 
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -736,7 +782,7 @@ class _FilesScreenState extends State<FilesScreen> {
               SizedBox(width: 8.w),
               Expanded(
                 child: Text(
-                  'Download URL ready for: ${file.displayName}',
+                  'Downloaded ${file.displayName}',
                   maxLines: 2,
                   style: TextStyle(fontSize: 12.sp, color: Colors.white),
                 ),
@@ -750,13 +796,93 @@ class _FilesScreenState extends State<FilesScreen> {
           duration: const Duration(seconds: 3),
         ),
       );
-
-      debugPrint('Download URL for ${file.fileName}: $downloadUrl');
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showErrorSnackBar(e.message);
+      debugPrint('FilesScreen download ApiException: ${e.statusCode} ${e.message}');
+      _showErrorSnackBar('Download failed (${e.statusCode}): ${e.message}');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      debugPrint('FilesScreen download failed with an unknown error.');
+      _showErrorSnackBar('Unable to download file.');
     }
+  }
+
+  String _downloadFileName(String fileName) {
+    if (fileName.toLowerCase().endsWith('.enc')) {
+      return fileName;
+    }
+    return '$fileName.enc';
+  }
+
+  Future<String?> _resolveDownloadPath(String fileName) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final expectedDirectory =
+        '${appDir.path}${Platform.pathSeparator}VaultSystemDownloads';
+    var downloadDirectory = await DownloadStorage.getDownloadDirectory();
+
+    if (downloadDirectory != expectedDirectory) {
+      downloadDirectory = null;
+      await DownloadStorage.clearDownloadDirectory();
+    }
+
+    if (downloadDirectory == null || downloadDirectory.isEmpty) {
+      final shouldSet = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: const Color(0xFF112240),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          title: Text(
+            'Set Download Folder',
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          content: Text(
+            'Downloads will be saved in the app folder by default. You can change this later from settings.',
+            style: TextStyle(fontSize: 13.sp, color: const Color(0xFF8899AA)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(fontSize: 13.sp, color: const Color(0xFF8899AA)),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(
+                'Use App Folder',
+                style: TextStyle(fontSize: 13.sp, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      );
+      if (shouldSet != true) {
+        return null;
+      }
+      downloadDirectory = expectedDirectory;
+      await DownloadStorage.saveDownloadDirectory(downloadDirectory);
+    }
+
+    final directory = Directory(downloadDirectory);
+    if (!await directory.exists()) {
+      await DownloadStorage.clearDownloadDirectory();
+      downloadDirectory = expectedDirectory;
+      await DownloadStorage.saveDownloadDirectory(downloadDirectory);
+      final refreshedDirectory = Directory(downloadDirectory);
+      if (!await refreshedDirectory.exists()) {
+        await refreshedDirectory.create(recursive: true);
+      }
+      return '${refreshedDirectory.path}${Platform.pathSeparator}${_downloadFileName(fileName)}';
+    }
+
+    return '${directory.path}${Platform.pathSeparator}${_downloadFileName(fileName)}';
   }
 
   void _sharePlaceholder(VaultFileModel file) {

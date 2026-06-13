@@ -48,6 +48,25 @@ class FileRepository {
     }
   }
 
+  Future<Uint8List> downloadFile(
+    String downloadUrlOrToken, {
+    String? token,
+  }) async {
+    try {
+      return await _service.downloadFile(
+        downloadUrlOrToken,
+        token: token,
+      );
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException(
+        message: 'Failed to download file.',
+        statusCode: 0,
+      );
+    }
+  }
+
   Future<void> deleteFile(int vaultId, int fileId, String token) async {
     try {
       await _service.deleteFile(vaultId, fileId, token);
