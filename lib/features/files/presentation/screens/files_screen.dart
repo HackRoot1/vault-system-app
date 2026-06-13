@@ -301,10 +301,10 @@ class _FilesScreenState extends State<FilesScreen> {
 
   Widget _buildFilterChips() {
     return SizedBox(
-      height: 58.h,
+      height: 72.h,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         itemCount: _filterChips.length,
         itemBuilder: (context, index) {
           final chip = _filterChips[index];
@@ -317,7 +317,8 @@ class _FilesScreenState extends State<FilesScreen> {
             },
             child: Container(
               margin: EdgeInsets.only(right: 10.w),
-              padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
+              padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isSelected ? Colors.white : const Color(0xFF112240),
                 borderRadius: BorderRadius.circular(22.r),
