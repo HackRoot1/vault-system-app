@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/crypto/vault_crypto.dart';
 import '../../../../core/storage/download_storage.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -766,6 +767,39 @@ class _FilesScreenState extends State<FilesScreen> {
         'FilesScreen downloaded bytes for file=${file.id}: ${bytes.length}',
       );
 
+      final masterPassword = await _getMasterPasswordForDownload();
+      if (!mounted) return;
+      if (masterPassword == null || masterPassword.isEmpty) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        return;
+      }
+
+      final salt = await TokenStorage.getCryptoSalt();
+      if (!mounted) return;
+      if (salt == null || salt.isEmpty) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showErrorSnackBar('Session expired. Please log in again.');
+        return;
+      }
+
+      final iterations = await TokenStorage.getCryptoIterations();
+      if (!mounted) return;
+
+      final key = await VaultCrypto.deriveKey(
+        masterPassword: masterPassword,
+        saltHex: salt,
+        iterations: iterations,
+      );
+      if (!mounted) return;
+
+      final plainBytes = await VaultCrypto.decryptBytes(
+        encryptedBytes: bytes,
+        ivB64: file.iv,
+        tagB64: file.tag,
+        key: key,
+      );
+      if (!mounted) return;
+
       final savePath = await _resolveDownloadPath(file.fileName);
       if (!mounted) return;
       if (savePath == null) {
@@ -790,7 +824,7 @@ class _FilesScreenState extends State<FilesScreen> {
       debugPrint('FilesScreen save-path for file=${file.id}: $savePath');
 
       try {
-        await File(savePath).writeAsBytes(bytes, flush: true);
+        await File(savePath).writeAsBytes(plainBytes, flush: true);
         debugPrint('FilesScreen wrote file to: $savePath');
       } catch (e, st) {
         debugPrint('FilesScreen write error: $e');
@@ -843,10 +877,132 @@ class _FilesScreenState extends State<FilesScreen> {
   }
 
   String _downloadFileName(String fileName) {
-    if (fileName.toLowerCase().endsWith('.enc')) {
-      return fileName;
+    return fileName.replaceFirst(RegExp(r'\.enc$', caseSensitive: false), '');
+  }
+
+  Future<String?> _getMasterPasswordForDownload() async {
+    final currentPassword = TokenStorage.getMasterPassword();
+    if (currentPassword != null && currentPassword.isNotEmpty) {
+      return currentPassword;
     }
-    return '$fileName.enc';
+
+    final password = await _showMasterPasswordDialog();
+    if (!mounted) return null;
+    if (password == null || password.isEmpty) return null;
+    TokenStorage.setMasterPassword(password);
+    await TokenStorage.saveMasterPasswordSecure(password);
+    return password;
+  }
+
+  Future<String?> _showMasterPasswordDialog() async {
+    final controller = TextEditingController();
+    var obscure = true;
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF112240),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.lock_outline, size: 18.sp, color: Colors.white),
+              SizedBox(width: 8.w),
+              Text(
+                'Master Password',
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter your master password to decrypt this file.',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: const Color(0xFF8899AA),
+                  height: 1.5,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1B2A),
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(color: const Color(0x1FFFFFFF)),
+                ),
+                child: TextField(
+                  controller: controller,
+                  obscureText: obscure,
+                  style: TextStyle(fontSize: 13.sp, color: Colors.white),
+                  cursorColor: Colors.white,
+                  decoration: InputDecoration(
+                    hintText: 'Master password',
+                    hintStyle: TextStyle(
+                      fontSize: 13.sp,
+                      color: const Color(0xFF8899AA),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 14.w,
+                      vertical: 12.h,
+                    ),
+                    border: InputBorder.none,
+                    suffixIcon: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setDialogState(() => obscure = !obscure),
+                      child: Icon(
+                        obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        size: 18.sp,
+                        color: const Color(0xFF8899AA),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: const Color(0xFF8899AA),
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2255EE),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              onPressed: () {
+                final password = controller.text;
+                if (password.isEmpty) return;
+                Navigator.pop(dialogContext, password);
+              },
+              child: Text(
+                'Confirm',
+                style: TextStyle(fontSize: 13.sp, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<String?> _resolveDownloadPath(String fileName) async {

@@ -100,6 +100,76 @@ class VaultCrypto {
     return utf8.decode(plainBytes);
   }
 
+  static Future<Uint8List> decryptBytes({
+    required Uint8List encryptedBytes,
+    required String ivB64,
+    required String tagB64,
+    required SecretKey key,
+  }) async {
+    final algorithm = AesGcm.with256bits(nonceLength: 12);
+    final iv = _b64Decode(ivB64);
+    final tag = _b64Decode(tagB64);
+
+    if (iv.length != 12) {
+      throw FormatException('IV must be 12 bytes, got ${iv.length}');
+    }
+    if (tag.length != 16) {
+      throw FormatException('Tag must be 16 bytes, got ${tag.length}');
+    }
+
+    Future<Uint8List> decryptWith(
+      Uint8List cipherText,
+      Uint8List macBytes,
+    ) async {
+      final secretBox = SecretBox(cipherText, nonce: iv, mac: Mac(macBytes));
+      final plainBytes = await algorithm.decrypt(secretBox, secretKey: key);
+      return Uint8List.fromList(plainBytes);
+    }
+
+    Object? lastError;
+
+    try {
+      return await decryptWith(encryptedBytes, tag);
+    } catch (error) {
+      lastError = error;
+    }
+
+    // Some download endpoints return a base64-encoded payload instead of raw
+    // ciphertext bytes. Normalize that format before giving up.
+    try {
+      final decoded = utf8.decode(encryptedBytes, allowMalformed: false).trim();
+      if (_looksLikeBase64(decoded)) {
+        return await decryptWith(_b64Decode(decoded), tag);
+      }
+    } catch (_) {
+      // Ignore and keep trying other recovery paths.
+    }
+
+    // If the server ever returns ciphertext with the tag appended, split it
+    // back out and retry. This keeps downloads working across backend variants.
+    if (encryptedBytes.length > 16) {
+      try {
+        final cipherText = Uint8List.sublistView(
+          encryptedBytes,
+          0,
+          encryptedBytes.length - 16,
+        );
+        final macBytes = Uint8List.sublistView(
+          encryptedBytes,
+          encryptedBytes.length - 16,
+        );
+        return await decryptWith(cipherText, macBytes);
+      } catch (_) {
+        // Fall through to the original error below.
+      }
+    }
+
+    Error.throwWithStackTrace(
+      StateError('Unable to decrypt downloaded bytes: $lastError'),
+      StackTrace.current,
+    );
+  }
+
   // Helpers
 
   static Uint8List _randomBytes(int n) {
@@ -114,6 +184,14 @@ class VaultCrypto {
       out[i] = int.parse(h.substring(i * 2, i * 2 + 2), radix: 16);
     }
     return out;
+  }
+
+  static bool _looksLikeBase64(String value) {
+    if (value.isEmpty || value.length % 4 != 0) {
+      return false;
+    }
+
+    return RegExp(r'^[A-Za-z0-9+/_-]+={0,2}$').hasMatch(value);
   }
 }
 
