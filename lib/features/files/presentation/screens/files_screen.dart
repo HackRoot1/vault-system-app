@@ -855,11 +855,6 @@ class _FilesScreenState extends State<FilesScreen> {
         '${appDir.path}${Platform.pathSeparator}VaultSystemDownloads';
     var downloadDirectory = await DownloadStorage.getDownloadDirectory();
 
-    if (downloadDirectory != expectedDirectory) {
-      downloadDirectory = null;
-      await DownloadStorage.clearDownloadDirectory();
-    }
-
     if (downloadDirectory == null || downloadDirectory.isEmpty) {
       final shouldSet = await showDialog<bool>(
         context: context,
@@ -910,14 +905,7 @@ class _FilesScreenState extends State<FilesScreen> {
 
     final directory = Directory(downloadDirectory);
     if (!await directory.exists()) {
-      await DownloadStorage.clearDownloadDirectory();
-      downloadDirectory = expectedDirectory;
-      await DownloadStorage.saveDownloadDirectory(downloadDirectory);
-      final refreshedDirectory = Directory(downloadDirectory);
-      if (!await refreshedDirectory.exists()) {
-        await refreshedDirectory.create(recursive: true);
-      }
-      return '${refreshedDirectory.path}${Platform.pathSeparator}${_downloadFileName(fileName)}';
+      await directory.create(recursive: true);
     }
 
     return '${directory.path}${Platform.pathSeparator}${_downloadFileName(fileName)}';

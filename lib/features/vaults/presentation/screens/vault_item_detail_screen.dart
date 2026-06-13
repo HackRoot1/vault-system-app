@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cryptography/cryptography.dart';
@@ -53,6 +54,7 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
   bool _isDecrypting = false;
   bool _showSecret = false;
   bool _showCvv = false;
+  Timer? _unlockTimer;
 
   @override
   void initState() {
@@ -62,12 +64,12 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
       (_) => _validateCryptoParams(),
     );
     _loadItem();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final masterPassword = TokenStorage.getMasterPassword();
-      if (masterPassword != null && masterPassword.isNotEmpty) {
-        await _deriveAndDecrypt(masterPassword);
-      }
-    });
+  }
+
+  @override
+  void dispose() {
+    _unlockTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _validateCryptoParams() async {
@@ -162,6 +164,7 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
         _decryptedPayload = payload;
         _isDecrypting = false;
       });
+      _startUnlockTimer();
     } catch (e) {
       if (mounted) {
         setState(() => _isDecrypting = false);
@@ -617,6 +620,39 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
     await _deriveAndDecrypt(masterPassword);
   }
 
+  void _startUnlockTimer() {
+    _unlockTimer?.cancel();
+    _unlockTimer = Timer(const Duration(minutes: 5), () {
+      if (!mounted) return;
+      _lockItem();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Item locked after 5 minutes.',
+            style: TextStyle(fontSize: 13.sp, color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF112240),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    });
+  }
+
+  void _lockItem() {
+    _unlockTimer?.cancel();
+    _unlockTimer = null;
+    TokenStorage.setMasterPassword('');
+    setState(() {
+      _derivedKey = null;
+      _decryptedPayload = null;
+    });
+  }
+
   Future<String?> _showMasterPasswordDialog() async {
     final biometricEnabled = await TokenStorage.isBiometricEnabled();
     final biometricLabel = await TokenStorage.getBiometricLabel();
@@ -814,22 +850,36 @@ class _VaultItemDetailScreenState extends State<VaultItemDetailScreen> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(
-              _decryptedPayload != null
-                  ? Icons.lock_open_outlined
-                  : Icons.lock_outline,
-              size: 20.sp,
-              color: _decryptedPayload != null
-                  ? const Color(0xFF00FF88)
-                  : AppColors.secondaryText,
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _decryptedPayload != null ? _lockItem : _promptAndDecrypt,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Row(
+                children: [
+                  Icon(
+                    _decryptedPayload != null
+                        ? Icons.lock_open_outlined
+                        : Icons.lock_outline,
+                    size: 20.sp,
+                    color: _decryptedPayload != null
+                        ? const Color(0xFF00FF88)
+                        : AppColors.secondaryText,
+                  ),
+                  SizedBox(width: 6.w),
+                  Text(
+                    _decryptedPayload != null ? 'Unlocked' : 'Locked',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: _decryptedPayload != null
+                          ? const Color(0xFF00FF88)
+                          : AppColors.secondaryText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            onPressed: _decryptedPayload != null
-                ? () => setState(() {
-                    _decryptedPayload = null;
-                    _derivedKey = null;
-                  })
-                : _promptAndDecrypt,
           ),
           SizedBox(width: 8.w),
         ],

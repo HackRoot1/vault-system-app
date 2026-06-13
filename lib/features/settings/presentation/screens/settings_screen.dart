@@ -1,6 +1,10 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/storage/download_storage.dart';
@@ -36,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _biometricLabel = 'Biometrics';
   bool _darkMode = true;
   String _autoLockTimer = '5 Minutes';
+  String _downloadFolderLabel = 'App managed folder';
   final List<String> _autoLockOptions = const [
     '1 Minute',
     '5 Minutes',
@@ -50,6 +55,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _loadAutoLockPref();
     _loadBiometricState();
+    _loadDownloadFolderLabel();
+  }
+
+  Future<void> _loadDownloadFolderLabel() async {
+    final path = await DownloadStorage.getDownloadDirectory();
+    if (!mounted) return;
+    setState(() {
+      _downloadFolderLabel = _formatDownloadFolderLabel(path);
+    });
   }
 
   Future<void> _loadBiometricState() async {
@@ -179,12 +193,117 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _changeDownloadFolder() async {
-    await DownloadStorage.clearDownloadDirectory();
+    final current = await DownloadStorage.getDownloadDirectory();
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF112240),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40.w,
+                height: 3.h,
+                decoration: BoxDecoration(
+                  color: const Color(0x33FFFFFF),
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Download Path',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              current == null || current.isEmpty
+                  ? 'Downloads are saved to the app folder.'
+                  : 'Current folder:\n$current',
+              style: TextStyle(fontSize: 12.sp, color: const Color(0xFF8899AA)),
+            ),
+            SizedBox(height: 16.h),
+            const Divider(color: Color(0x14FFFFFF)),
+            SizedBox(height: 8.h),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.folder_copy_outlined,
+                color: Color(0xFF8899AA),
+              ),
+              title: const Text(
+                'Use App Folder',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Reset to the default app-managed location',
+                style: TextStyle(color: Color(0xFF8899AA)),
+              ),
+              onTap: () => Navigator.of(sheetContext).pop('default'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(
+                Icons.folder_open_outlined,
+                color: Color(0xFF8899AA),
+              ),
+              title: const Text(
+                'Choose Folder',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Pick a custom download location',
+                style: TextStyle(color: Color(0xFF8899AA)),
+              ),
+              onTap: () => Navigator.of(sheetContext).pop('custom'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || choice == null) return;
+
+    if (choice == 'default') {
+      await DownloadStorage.clearDownloadDirectory();
+      await _ensureDefaultDownloadDirectory();
+      if (!mounted) return;
+      setState(() {
+        _downloadFolderLabel = 'App managed folder';
+      });
+    } else {
+      final pickedPath = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Select Download Folder',
+      );
+      if (!mounted) return;
+      if (pickedPath == null || pickedPath.isEmpty) return;
+
+      final directory = Directory(pickedPath);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+      await DownloadStorage.saveDownloadDirectory(pickedPath);
+      if (!mounted) return;
+      setState(() {
+        _downloadFolderLabel = _formatDownloadFolderLabel(pickedPath);
+      });
+    }
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Download folder will be asked on next download.',
+          'Download path updated.',
           style: TextStyle(fontSize: 13.sp, color: Colors.white),
         ),
         backgroundColor: const Color(0xFF112240),
@@ -194,6 +313,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<void> _ensureDefaultDownloadDirectory() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final defaultPath =
+        '${appDir.path}${Platform.pathSeparator}VaultSystemDownloads';
+    final directory = Directory(defaultPath);
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    await DownloadStorage.saveDownloadDirectory(defaultPath);
+  }
+
+  String _formatDownloadFolderLabel(String? path) {
+    if (path == null || path.isEmpty) return 'App managed folder';
+    final parts = path.split(Platform.pathSeparator);
+    return parts.isEmpty ? path : parts.last;
   }
 
   void _showComingSoonSnackBar(String feature) {
@@ -671,8 +807,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SizedBox(height: 12.h),
             _buildSettingsRow(
               icon: Icons.folder_outlined,
-              title: 'Download Folder',
-              subtitle: 'App managed folder',
+              title: 'Change Download Path',
+              subtitle: _downloadFolderLabel,
               trailing: Icon(
                 Icons.chevron_right,
                 size: 18.sp,

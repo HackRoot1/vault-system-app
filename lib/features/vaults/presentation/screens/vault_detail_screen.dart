@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -52,6 +54,7 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
   String? _errorMessage;
   SecretKey? _derivedKey;
   final Map<int, Map<String, dynamic>?> _decryptedCache = {};
+  Timer? _unlockTimer;
 
   Future<(String, int)?> _getCryptoParamsOrRedirect() async {
     final salt = await TokenStorage.getCryptoSalt();
@@ -100,6 +103,7 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
 
   @override
   void dispose() {
+    _unlockTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -121,11 +125,6 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
 
       if (_searchController.text.isNotEmpty) {
         _onSearchChanged(_searchController.text);
-      }
-
-      final mp = TokenStorage.getMasterPassword();
-      if (mp != null && mp.isNotEmpty) {
-        await _deriveAndDecryptAll(mp);
       }
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -154,19 +153,19 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
     });
   }
 
-  Future<void> _deriveAndDecryptAll(String masterPassword) async {
+  Future<bool> _deriveAndDecryptAll(String masterPassword) async {
     try {
       final key = await VaultCrypto.deriveKey(
         masterPassword: masterPassword,
         saltHex: widget.cryptoSalt,
         iterations: widget.cryptoIterations,
       );
-      if (!mounted) return;
+      if (!mounted) return false;
 
       final cache = <int, Map<String, dynamic>?>{};
       for (final item in _items) {
         cache[item.id] = await item.decryptPayload(key);
-        if (!mounted) return;
+        if (!mounted) return false;
       }
 
       setState(() {
@@ -179,8 +178,10 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
       if (_searchController.text.isNotEmpty) {
         _onSearchChanged(_searchController.text);
       }
+      return true;
     } catch (_) {
       // Silent fail; user can manually trigger decrypt.
+      return false;
     }
   }
 
@@ -193,7 +194,47 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
     }
     TokenStorage.setMasterPassword(masterPassword);
     await TokenStorage.saveMasterPasswordSecure(masterPassword);
-    await _deriveAndDecryptAll(masterPassword);
+    final unlocked = await _deriveAndDecryptAll(masterPassword);
+    if (unlocked) {
+      _startUnlockTimer();
+    }
+  }
+
+  void _startUnlockTimer() {
+    _unlockTimer?.cancel();
+
+    _unlockTimer = Timer(const Duration(minutes: 5), () {
+      if (!mounted) return;
+      _lockVault();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Vault locked after 5 minutes.',
+            style: TextStyle(fontSize: 13.sp, color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF112240),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16.w),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    });
+  }
+
+  void _lockVault() {
+    _unlockTimer?.cancel();
+    _unlockTimer = null;
+    TokenStorage.setMasterPassword('');
+    setState(() {
+      _derivedKey = null;
+      _decryptedCache.clear();
+      if (_searchController.text.isNotEmpty) {
+        _onSearchChanged(_searchController.text);
+      }
+    });
   }
 
   Future<String?> _showMasterPasswordDialog() async {
@@ -1013,25 +1054,36 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
             ),
             onPressed: _showFilterSheet,
           ),
-          IconButton(
-            icon: Icon(
-              _derivedKey != null
-                  ? Icons.lock_open_outlined
-                  : Icons.lock_outline,
-              size: 20.sp,
-              color: _derivedKey != null
-                  ? const Color(0xFF00FF88)
-                  : AppColors.secondaryText,
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _derivedKey != null ? _lockVault : _promptAndDeriveKey,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Row(
+                children: [
+                  Icon(
+                    _derivedKey != null
+                        ? Icons.lock_open_outlined
+                        : Icons.lock_outline,
+                    size: 20.sp,
+                    color: _derivedKey != null
+                        ? const Color(0xFF00FF88)
+                        : AppColors.secondaryText,
+                  ),
+                  SizedBox(width: 6.w),
+                  Text(
+                    _derivedKey != null ? 'Unlocked' : 'Locked',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: _derivedKey != null
+                          ? const Color(0xFF00FF88)
+                          : AppColors.secondaryText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            onPressed: _derivedKey != null
-                ? () => setState(() {
-                    _derivedKey = null;
-                    _decryptedCache.clear();
-                    if (_searchController.text.isNotEmpty) {
-                      _onSearchChanged(_searchController.text);
-                    }
-                  })
-                : _promptAndDeriveKey,
           ),
           SizedBox(width: 8.w),
         ],
@@ -1141,7 +1193,7 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
                           ),
                           SizedBox(width: 4.w),
                           Text(
-                            'Decrypt all',
+                            'Unlock vault',
                             style: GoogleFonts.sourceCodePro(
                               fontSize: 11.sp,
                               color: AppColors.secondaryText,
