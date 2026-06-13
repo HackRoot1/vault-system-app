@@ -4,9 +4,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vault_bottom_nav.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../data/models/vault_list_model.dart';
 import '../../data/repositories/vault_repository.dart';
 import 'create_vault_screen.dart';
@@ -796,6 +798,24 @@ class _VaultListScreenState extends State<VaultListScreen> {
               transitionDuration: const Duration(milliseconds: 300),
             ),
             (route) => false,
+          );
+        },
+        onSettingsTap: () async {
+          final email = await TokenStorage.getUserEmail() ?? '';
+          if (!context.mounted) return;
+          Navigator.of(context).push(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  SettingsScreen(
+                token: widget.token,
+                userName: widget.userName,
+                userEmail: email,
+              ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
           );
         },
       ),

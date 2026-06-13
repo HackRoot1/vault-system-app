@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vault_bottom_nav.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../data/models/vault_item_model.dart';
 import '../../data/models/vault_list_model.dart';
 import '../../data/repositories/vault_repository.dart';
@@ -993,6 +994,24 @@ class _VaultDetailScreenState extends State<VaultDetailScreen> {
               transitionDuration: const Duration(milliseconds: 300),
             ),
             (route) => false,
+          );
+        },
+        onSettingsTap: () async {
+          final email = await TokenStorage.getUserEmail() ?? '';
+          if (!context.mounted) return;
+          Navigator.of(context).push(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  SettingsScreen(
+                token: widget.token,
+                userName: widget.userName,
+                userEmail: email,
+              ),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) =>
+                      FadeTransition(opacity: animation, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
           );
         },
       ),

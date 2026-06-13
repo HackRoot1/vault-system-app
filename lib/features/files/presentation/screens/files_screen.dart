@@ -10,8 +10,8 @@ import '../../../../core/storage/download_storage.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/vault_bottom_nav.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../vaults/data/models/vault_list_model.dart';
 import '../../../vaults/presentation/screens/vault_list_screen.dart';
 import 'upload_file_screen.dart';
@@ -103,7 +103,7 @@ class _FilesScreenState extends State<FilesScreen> {
               ),
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: _showSettingsSheet,
+                onTap: _openSettingsScreen,
                 child: Icon(
                   Icons.settings_outlined,
                   size: 22.sp,
@@ -1216,81 +1216,21 @@ class _FilesScreenState extends State<FilesScreen> {
     );
   }
 
-  void _showSettingsSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF112240),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+  Future<void> _openSettingsScreen() async {
+    final email = await TokenStorage.getUserEmail() ?? '';
+    if (!mounted) return;
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => SettingsScreen(
+          token: widget.token,
+          userName: widget.userName,
+          userEmail: email,
+        ),
+        transitionsBuilder:
+            (context, animation, secondaryAnimation, child) =>
+                FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 300),
       ),
-      builder: (sheetContext) {
-        return Padding(
-          padding: EdgeInsets.all(20.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: Container(
-                  width: 40.w,
-                  height: 3.h,
-                  decoration: BoxDecoration(
-                    color: const Color(0x33FFFFFF),
-                    borderRadius: BorderRadius.circular(2.r),
-                  ),
-                ),
-              ),
-              SizedBox(height: 20.h),
-              Text(
-                'Settings',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(height: 16.h),
-              const Divider(color: Color(0x14FFFFFF)),
-              SizedBox(height: 8.h),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () async {
-                  Navigator.pop(sheetContext);
-                  await TokenStorage.clearSession();
-                  if (!mounted) return;
-                  Navigator.of(context).pushAndRemoveUntil(
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          const LoginScreen(),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) =>
-                              FadeTransition(opacity: animation, child: child),
-                      transitionDuration: const Duration(milliseconds: 400),
-                    ),
-                    (route) => false,
-                  );
-                },
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14.h),
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, size: 18.sp, color: const Color(0xFFCC3333)),
-                      SizedBox(width: 12.w),
-                      Text(
-                        'Logout',
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: const Color(0xFFCC3333),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -1370,7 +1310,7 @@ class _FilesScreenState extends State<FilesScreen> {
             transitionDuration: const Duration(milliseconds: 300),
           ),
         ),
-        onSettingsTap: _showSettingsSheet,
+        onSettingsTap: _openSettingsScreen,
       ),
       body: SafeArea(
         child: Column(

@@ -16,6 +16,7 @@ import '../../../vaults/presentation/screens/vault_item_detail_screen.dart';
 import '../../../vaults/presentation/screens/vault_list_screen.dart';
 import '../../../files/presentation/screens/files_screen.dart';
 import '../../../files/presentation/screens/upload_file_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../data/models/dashboard_stats_model.dart';
 import '../../data/models/recent_item_model.dart';
 import '../../data/repositories/dashboard_repository.dart';
@@ -1041,6 +1042,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ).then((_) {
             if (mounted) setState(() => _selectedNavIndex = 0);
           });
+        },
+        onSettingsTap: () async {
+          setState(() => _selectedNavIndex = 3);
+          final email = await TokenStorage.getUserEmail() ?? '';
+          if (!mounted) return;
+          Navigator.of(context)
+              .push(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      SettingsScreen(
+                    token: widget.token,
+                    userName: widget.userName,
+                    userEmail: email,
+                  ),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) =>
+                          FadeTransition(opacity: animation, child: child),
+                  transitionDuration: const Duration(milliseconds: 300),
+                ),
+              )
+              .then((_) {
+                if (mounted) setState(() => _selectedNavIndex = 0);
+              });
         },
       ),
     );
